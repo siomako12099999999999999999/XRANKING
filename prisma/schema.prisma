@@ -1,0 +1,20 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+}
+
+model Tweet {
+  id        BigInt   @id @default(autoincrement())
+  likes     Int      @default(0)
+  retweets  Int      @default(0)
+  views     Int      @default(0)
+  content   String?
+  videoUrl  String?
+  timestamp DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

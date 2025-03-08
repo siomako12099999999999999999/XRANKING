@@ -1,0 +1,39 @@
+.navbar {
+  background: #1a1a1a;
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.logo {
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.periods {
+  display: flex;
+  gap: 1rem;
+}
+
+.periodButton {
+  background: none;
+  border: none;
+  color: #fff;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.periodButton:hover {
+  background: #333;
+}
+
+.periodButton.active {
+  background: #ff6b6b;
+}

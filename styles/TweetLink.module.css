@@ -1,0 +1,33 @@
+.tweetWrapper {
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: #1da1f2;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.tweetLink {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  text-decoration: none;
+  color: white;
+  transition: background-color 0.3s;
+}
+
+.tweetLink:hover {
+  background-color: #1a91da;
+}
+
+.playIcon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.linkText {
+  font-size: 1rem;
+  font-weight: bold;
+}

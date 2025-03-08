@@ -1,0 +1,38 @@
+# ローカル環境セットアップ手順
+
+1. 前提条件
+   - Node.js 18以上
+   - SQL Server 2019以上
+   - npm 9以上
+
+2. データベースのセットアップ
+   - SQL Server Management Studioを開く
+   - scripts/setup-database.sqlを実行
+
+3. 環境変数の設定
+   - .env.exampleを.envにコピー
+   - 必要な認証情報を設定
+
+4. アプリケーションの起動
+   ```bash
+   # パッケージのインストール
+   npm install
+
+   # データベースのセットアップ
+   npm run db:setup
+
+   # 開発サーバーの起動
+   npm run dev
+   ```
+
+5. 動作確認
+   - ブラウザで http://localhost:3000 にアクセス
+   - ランキングが表示されることを確認
+
+6. トラブルシューティング
+   - データベース接続エラーの場合
+     - SQL Serverの認証情報を確認
+     - ファイアウォールの設定を確認
+   - Twitter API関連のエラー
+     - 環境変数の設定を確認
+     - APIキーの有効性を確認
