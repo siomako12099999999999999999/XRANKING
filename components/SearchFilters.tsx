@@ -1,143 +1,68 @@
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
-
-type PeriodOption = 'day' | 'week' | 'month' | 'all';
-type SortOption = 'likes' | 'retweets' | 'views' | 'latest';
 
 interface SearchFiltersProps {
-  initialPeriod?: PeriodOption;
-  initialSort?: SortOption;
-  onFilterChange?: (period: PeriodOption, sort: SortOption) => void;
+  initialPeriod: 'day' | 'week' | 'month' | 'all';
+  initialSort: 'likes' | 'retweets' | 'views' | 'latest';
+  onFilterChange: (period: string, sort: string) => void;
 }
 
-const SearchFilters: React.FC<SearchFiltersProps> = ({ 
+export default function SearchFilters({ 
   initialPeriod = 'week', 
   initialSort = 'likes',
-  onFilterChange 
-}) => {
-  const [period, setPeriod] = useState<PeriodOption>(initialPeriod);
-  const [sort, setSort] = useState<SortOption>(initialSort);
-  const router = useRouter();
+  onFilterChange
+}: SearchFiltersProps) {
+  const [period, setPeriod] = useState(initialPeriod);
+  const [sort, setSort] = useState(initialSort);
 
-  const handlePeriodChange = (newPeriod: PeriodOption) => {
+  const handlePeriodChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newPeriod = e.target.value;
     setPeriod(newPeriod);
-    if (onFilterChange) {
-      onFilterChange(newPeriod, sort);
-    }
-    
-    // URLパラメータを更新
-    const searchParams = new URLSearchParams(window.location.search);
-    searchParams.set('period', newPeriod);
-    router.push(`/?${searchParams.toString()}`);
+    onFilterChange(newPeriod, sort);
   };
 
-  const handleSortChange = (newSort: SortOption) => {
+  const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newSort = e.target.value;
     setSort(newSort);
-    if (onFilterChange) {
-      onFilterChange(period, newSort);
-    }
-    
-    // URLパラメータを更新
-    const searchParams = new URLSearchParams(window.location.search);
-    searchParams.set('sort', newSort);
-    router.push(`/?${searchParams.toString()}`);
+    onFilterChange(period, newSort);
   };
 
   return (
-    <div className="flex flex-col sm:flex-row gap-4 mb-6 p-4 bg-gray-50 rounded-lg shadow-sm">
-      <div className="w-full sm:w-1/2">
-        <h3 className="text-sm font-medium text-gray-700 mb-2">期間</h3>
-        <div className="flex gap-2">
-          <button
-            onClick={() => handlePeriodChange('day')}
-            className={`px-3 py-2 text-sm rounded-md ${
-              period === 'day' 
-                ? 'bg-blue-500 text-white' 
-                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-            }`}
+    <div className="bg-white p-4 rounded-lg shadow mb-6">
+      <div className="flex flex-col sm:flex-row justify-between gap-4">
+        <div className="flex-1">
+          <label htmlFor="period" className="block text-sm font-medium text-gray-700 mb-1">
+            期間
+          </label>
+          <select
+            id="period"
+            value={period}
+            onChange={handlePeriodChange}
+            className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
           >
-            24時間
-          </button>
-          <button
-            onClick={() => handlePeriodChange('week')}
-            className={`px-3 py-2 text-sm rounded-md ${
-              period === 'week' 
-                ? 'bg-blue-500 text-white' 
-                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            1週間
-          </button>
-          <button
-            onClick={() => handlePeriodChange('month')}
-            className={`px-3 py-2 text-sm rounded-md ${
-              period === 'month' 
-                ? 'bg-blue-500 text-white' 
-                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            1ヶ月
-          </button>
-          <button
-            onClick={() => handlePeriodChange('all')}
-            className={`px-3 py-2 text-sm rounded-md ${
-              period === 'all' 
-                ? 'bg-blue-500 text-white' 
-                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            全期間
-          </button>
+            <option value="day">24時間</option>
+            <option value="week">1週間</option>
+            <option value="month">1ヶ月</option>
+            <option value="all">全期間</option>
+          </select>
         </div>
-      </div>
-      
-      <div className="w-full sm:w-1/2">
-        <h3 className="text-sm font-medium text-gray-700 mb-2">並び替え</h3>
-        <div className="flex gap-2">
-          <button
-            onClick={() => handleSortChange('likes')}
-            className={`px-3 py-2 text-sm rounded-md ${
-              sort === 'likes' 
-                ? 'bg-blue-500 text-white' 
-                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-            }`}
+        
+        <div className="flex-1">
+          <label htmlFor="sort" className="block text-sm font-medium text-gray-700 mb-1">
+            並び替え
+          </label>
+          <select
+            id="sort"
+            value={sort}
+            onChange={handleSortChange}
+            className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
           >
-            いいね
-          </button>
-          <button
-            onClick={() => handleSortChange('retweets')}
-            className={`px-3 py-2 text-sm rounded-md ${
-              sort === 'retweets' 
-                ? 'bg-blue-500 text-white' 
-                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            リツイート
-          </button>
-          <button
-            onClick={() => handleSortChange('views')}
-            className={`px-3 py-2 text-sm rounded-md ${
-              sort === 'views' 
-                ? 'bg-blue-500 text-white' 
-                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            再生数
-          </button>
-          <button
-            onClick={() => handleSortChange('latest')}
-            className={`px-3 py-2 text-sm rounded-md ${
-              sort === 'latest' 
-                ? 'bg-blue-500 text-white' 
-                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            新着
-          </button>
+            <option value="likes">いいね数</option>
+            <option value="retweets">リツイート数</option>
+            <option value="views">再生回数</option>
+            <option value="latest">新着順</option>
+          </select>
         </div>
       </div>
     </div>
   );
-};
-
-export default SearchFilters;
+}

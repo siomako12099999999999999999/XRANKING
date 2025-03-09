@@ -15,14 +15,7 @@ const nextConfig = {
       'abs.twimg.com',      // Twitter メディア用
       'video.twimg.com'     // Twitter 動画用
     ]
-  },
-  webpack: (config, { isServer }) => {
-    config.resolve.fallback = {
-      ...config.resolve.fallback,
-      punycode: false,
-    };
-    return config;
-  },
+  }
 };
 
 module.exports = nextConfig;

@@ -1,11 +1,12 @@
 import React from 'react';
-import Image from 'next/image';
+import Link from 'next/link';
+import { formatNumber, formatDate } from '../lib/utils';
 
 interface Tweet {
   id: string;
   tweetId: string;
-  content: string;
-  videoUrl: string;
+  content: string | null;
+  videoUrl: string | null;
   likes: number;
   retweets: number;
   views: number;
@@ -13,111 +14,82 @@ interface Tweet {
   authorId: string;
   authorName: string;
   authorUsername: string;
-  authorProfileImageUrl: string;
 }
 
 interface TweetListProps {
   tweets: Tweet[];
 }
 
-const TweetList: React.FC<TweetListProps> = ({ tweets }) => {
-  const formatNumber = (num: number): string => {
-    if (num >= 1000000) {
-      return `${(num / 1000000).toFixed(1)}M`;
-    }
-    if (num >= 1000) {
-      return `${(num / 1000).toFixed(1)}K`;
-    }
-    return num.toString();
-  };
-
-  const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('ja-JP', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    }).format(date);
-  };
-
+export default function TweetList({ tweets }: TweetListProps) {
   if (!tweets || tweets.length === 0) {
     return <div className="text-center py-10">表示するツイートがありません</div>;
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="space-y-6">
       {tweets.map((tweet) => (
-        <div
-          key={tweet.id}
-          className="border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow"
-        >
-          {/* ビデオプレビュー (サムネイル) */}
-          <div className="relative aspect-video bg-black">
-            {tweet.videoUrl ? (
-              <a href={`https://twitter.com/i/status/${tweet.tweetId}`} target="_blank" rel="noopener noreferrer">
-                {/* サムネイル表示（動画のプレビュー画像がない場合はプレースホルダーを表示） */}
-                <div className="w-full h-full flex items-center justify-center bg-gray-900">
-                  <div className="text-white">▶️ 動画を再生</div>
-                </div>
-                {/* 実際の動画があればここに表示 */}
-              </a>
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                <p className="text-gray-500">動画なし</p>
-              </div>
-            )}
+        <div key={tweet.id} className="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow">
+          {/* ユーザー情報 */}
+          <div className="flex items-center mb-3">
+            <div>
+              <div className="font-medium">{tweet.authorName}</div>
+              <div className="text-gray-500 text-sm">@{tweet.authorUsername}</div>
+            </div>
           </div>
-
-          {/* ツイート情報 */}
-          <div className="p-4">
-            {/* ユーザー情報 */}
-            <div className="flex items-center mb-3">
-              <div className="relative h-10 w-10 rounded-full overflow-hidden mr-3">
-                {tweet.authorProfileImageUrl ? (
-                  <Image
-                    src={tweet.authorProfileImageUrl}
-                    alt={tweet.authorName}
-                    fill
-                    sizes="40px"
-                    className="object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gray-200"></div>
-                )}
+          
+          {/* ツイート内容 */}
+          <p className="mb-3 text-gray-800">{tweet.content}</p>
+          
+          {/* 動画プレビュー */}
+          {tweet.videoUrl && (
+            <div className="mb-3 rounded-lg overflow-hidden bg-gray-100">
+              <Link href={`https://twitter.com/${tweet.authorUsername}/status/${tweet.tweetId}`} target="_blank" rel="noopener noreferrer">
+                <div className="aspect-video relative bg-black">
+                  {/* 動画サムネイル/プレビュー */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    {/* 本番環境では実際の動画を埋め込むことも可能 */}
+                    <div className="flex flex-col items-center justify-center text-white">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span className="text-sm opacity-80">クリックして動画を視聴</span>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            </div>
+          )}
+          
+          {/* エンゲージメント情報 */}
+          <div className="flex justify-between text-gray-500 text-sm">
+            <div className="flex space-x-4">
+              <div>
+                <span className="font-semibold text-red-600">{formatNumber(tweet.likes)}</span> いいね
               </div>
               <div>
-                <h3 className="font-medium text-gray-900">{tweet.authorName}</h3>
-                <p className="text-sm text-gray-500">@{tweet.authorUsername}</p>
+                <span className="font-semibold text-green-600">{formatNumber(tweet.retweets)}</span> リツイート
+              </div>
+              <div>
+                <span className="font-semibold text-blue-600">{formatNumber(tweet.views || 0)}</span> 再生
               </div>
             </div>
-
-            {/* ツイート本文 */}
-            <p className="text-gray-700 mb-3 line-clamp-3">{tweet.content}</p>
-
-            {/* エンゲージメント情報 */}
-            <div className="flex justify-between text-sm text-gray-500">
-              <div className="flex space-x-4">
-                <span>❤️ {formatNumber(tweet.likes)}</span>
-                <span>🔁 {formatNumber(tweet.retweets)}</span>
-                <span>👁️ {formatNumber(tweet.views)}</span>
-              </div>
-              <span>{formatDate(tweet.timestamp)}</span>
-            </div>
-
-            {/* ツイートリンク */}
-            <a
-              href={`https://twitter.com/i/status/${tweet.tweetId}`}
+            <div>{formatDate(new Date(tweet.timestamp))}</div>
+          </div>
+          
+          {/* フッター */}
+          <div className="mt-2 pt-2 border-t border-gray-100 text-right">
+            <Link 
+              href={`https://twitter.com/${tweet.authorUsername}/status/${tweet.tweetId}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-4 inline-block px-4 py-2 bg-blue-500 text-white rounded-full text-sm hover:bg-blue-600 transition-colors"
+              className="text-sm text-blue-600 hover:underline"
             >
-              ツイートを見る
-            </a>
+              Xで開く →
+            </Link>
           </div>
         </div>
       ))}
     </div>
   );
-};
-
-export default TweetList;
+}
