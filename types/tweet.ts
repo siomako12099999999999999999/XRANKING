@@ -31,7 +31,7 @@ export interface ProcessedTweet {
   authorProfileImageUrl: string;
   createdAt: string;
   mediaCount: number;
-  videoUrl: string;
+  videoUrl: string | null;  // nullを許容するように変更
   direct_video_url?: string; // すでに存在
   video_url?: string;        // すでに存在
   thumbnail_url?: string;

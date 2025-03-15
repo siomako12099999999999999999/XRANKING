@@ -26,10 +26,26 @@ const hasNextPage = false; // 仮の値を設定
 const handleLoadMore = () => {}; // 仮の関数を定義
 const isFetchingNextPage = false; // 仮の値を設定
 
+// ナビゲーション項目の型定義を追加
+interface NavItem {
+  path: string;
+  name: string;
+}
+
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+
+  // ナビゲーション項目を定義 - モバイルナビゲーションで使用
+  const navItems: NavItem[] = [
+    // ナビゲーション項目が必要ない場合は空配列のままにする
+  ];
+
+  // アクティブなパスをチェックする関数を追加
+  const isActive = (path: string): boolean => {
+    return pathname === path;
+  };
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -112,7 +128,7 @@ const Header = () => {
         <div className="md:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
           <nav className="container mx-auto px-4 py-2">
             <ul className="space-y-2">
-              {navItems.map((item) => (
+              {navItems.map((item: NavItem) => (
                 <li key={item.path}>
                   <Link 
                     href={item.path}
