@@ -9,6 +9,9 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'XRANKING - 人気の動画投稿をチェック',
   description: 'X / Twitter の人気動画投稿をランキングで表示するサービス',
+  icons: {
+    icon: '/logotrim.ico', // カスタム名のアイコンファイルを指定
+  },
 };
 
 export const viewport: Viewport = {

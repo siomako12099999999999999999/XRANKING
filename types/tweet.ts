@@ -23,8 +23,24 @@ export interface Tweet {
 /**
  * 処理後のツイート型（プロキシ対応したURLを含む）
  */
-export interface ProcessedTweet extends Tweet {
-  processedVideoUrl: string | null;
+export interface ProcessedTweet {
+  id: string;
+  text: string;
+  authorName: string;
+  authorUsername: string;
+  authorProfileImageUrl: string;
+  createdAt: string;
+  mediaCount: number;
+  videoUrl: string;
+  direct_video_url?: string; // すでに存在
+  video_url?: string;        // すでに存在
+  thumbnail_url?: string;
+  likes: number;
+  retweets: number;
+  views: number;
+  mediaType: string;
+  processedVideoUrl?: string;
+  // directVideoUrlはdirect_video_urlと重複するため不要です
 }
 
 /**

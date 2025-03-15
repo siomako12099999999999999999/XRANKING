@@ -2,11 +2,12 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import ThemeToggle from './ThemeToggle';
-import { FaBars, FaTimes, FaTwitter } from 'react-icons/fa';
+import { FaBars, FaTimes, FaTwitter, FaMobile } from 'react-icons/fa'; // FaMobileを追加
 import { BiTrendingUp } from 'react-icons/bi';
-import SearchFilters from './SearchFilters'; // SearchFilters コンポーネントをインポート
+import { BsPhone } from 'react-icons/bs';
+import SearchFilters from './SearchFilters'; // SearchFilters コンポーネントをインポーネート
 import LoadingSpinner from './LoadingSpinner'; // LoadingSpinner コンポーネントをインポート
 import TweetList from './TweetList'; // TweetList コンポーネントをインポート
 import Footer from './Footer'; // Footer コンポーネントをインポート
@@ -28,6 +29,7 @@ const isFetchingNextPage = false; // 仮の値を設定
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -37,37 +39,27 @@ const Header = () => {
     setIsMenuOpen(false);
   };
 
-  const navItems = [
-    { name: '人気', path: '/?sort=likes' },
-    { name: '最新', path: '/?sort=latest' },
-    { name: 'トレンド', path: '/?sort=trending' },
-    { name: '今日', path: '/?period=day' },
-    { name: '週間', path: '/?period=week' },
-    { name: '月間', path: '/?period=month' }
-  ];
-
-  // 改善されたアクティブ項目検出
-  const isActive = (path: string) => {
-    const [basePath, queryString] = path.split('?');
-    if (pathname !== '/') return false;
-
-    if (typeof window !== 'undefined') {
-      const currentParams = new URLSearchParams(window.location.search);
-
-      // パスのクエリパラメータを解析
-      if (!queryString) return false;
-
-      // key=valueのペアを抽出
-      const searchParam = queryString.split('&')[0]; // 最初のパラメータのみ使用
-      const [paramKey, paramValue] = searchParam.split('=');
-
-      if (!paramKey || !paramValue) return false;
-
-      // ページURLに同じパラメータと値があるかチェック
-      return currentParams.get(paramKey) === paramValue;
+  // 関数の定義を修正
+  const goToMobileView = (
+    e: React.MouseEvent<HTMLButtonElement, MouseEvent> | null = null, 
+    specificSort?: string, 
+    specificPeriod?: string
+  ) => {
+    // イベントが渡されていれば、デフォルトの動作を防止
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
     }
 
-    return false;
+    // URLSearchParamsを使って現在のクエリパラメータを取得
+    const params = new URLSearchParams(window.location.search);
+    
+    // 特定のソート順や期間が指定されていれば優先、なければURLから取得、それもなければデフォルト値
+    const currentSort = specificSort || params.get('sort') || 'likes';
+    const currentPeriod = specificPeriod || params.get('period') || 'week';
+    
+    // クエリパラメータ付きでモバイルページに遷移
+    router.push(`/mobile?sort=${currentSort}&period=${currentPeriod}`);
   };
 
   return (
@@ -82,24 +74,16 @@ const Header = () => {
             </Link>
           </div>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-6">
-            {navItems.map((item) => (
-              <Link
-                key={item.path}
-                href={item.path}
-                className={`text-sm font-medium transition-colors hover:text-blue-600 dark:hover:text-blue-400
-                  ${isActive(item.path) 
-                    ? 'text-blue-600 dark:text-blue-400'
-                    : 'text-gray-700 dark:text-gray-300'}`}
-              >
-                {item.name}
-              </Link>
-            ))}
-          </nav>
-
-          {/* Theme Toggle and Mobile Menu Button */}
+          {/* Desktop Navigation - 削除してシンプルな右側のアイコン群のみに */}
           <div className="flex items-center space-x-4">
+            <button
+              onClick={() => goToMobileView(null)}
+              className="text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 flex items-center gap-1"
+              aria-label="モバイルビュー"
+            >
+              <FaMobile className="h-5 w-5" />
+            </button>
+            
             <ThemeToggle />
             
             <a 
@@ -170,7 +154,7 @@ export default Header;
       {/* サイドバー: デスクトップでは左側に表示 */}
       <div className="lg:w-1/4">
         <div className="sticky top-24 bg-white dark:bg-gray-800 rounded-xl shadow-sm p-5">
-          <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">絞り込み検索</h2>
+          <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text白">絞り込み検索</h2>
           <SearchFilters 
             initialPeriod={period as any} 
             initialSort={sort as any}
@@ -209,7 +193,7 @@ export default Header;
             <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-red-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">エラーが発生しました</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text白 mb-2">エラーが発生しました</h2>
             <p className="text-red-600 dark:text-red-400">{(error as unknown as Error).message}</p>
             <button 
               onClick={() => window.location.reload()}

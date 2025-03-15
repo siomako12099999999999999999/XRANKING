@@ -41,7 +41,15 @@ module.exports = {
           '0%': { width: '0%' },
           '50%': { width: '70%' },
           '100%': { width: '100%' }
-        }
+        },
+        fadeIn: {
+          '0%': { opacity: '0', transform: 'translateY(-10px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        pulse: {
+          '0%, 100%': { opacity: '0.6' },
+          '50%': { opacity: '0.3' },
+        },
       },
       animation: {
         'loader-dot1': 'loader-dot1 1.4s infinite ease-in-out',
@@ -50,8 +58,15 @@ module.exports = {
         'loader-bounce1': 'loader-bounce1 1.2s infinite',
         'loader-bounce2': 'loader-bounce2 1.2s infinite 0.2s',
         'loader-bounce3': 'loader-bounce3 1.2s infinite 0.4s',
-        'loader-bar': 'loader-bar 2s infinite ease-in-out'
+        'loader-bar': 'loader-bar 2s infinite ease-in-out',
+        'fade-in': 'fadeIn 0.2s ease-out forwards',
+        'pulse': 'pulse 1.5s ease-in-out infinite',
       },
+    },
+  },
+  variants: {
+    extend: {
+      // バリアントの拡張（オプション）
     },
   },
   plugins: [],

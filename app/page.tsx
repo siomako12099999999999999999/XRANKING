@@ -81,7 +81,14 @@ export default function Home() {
   const tweets: ProcessedTweet[] = data?.pages.flatMap(page => 
     page.tweets.map((tweet: Tweet) => ({
       ...tweet,
-      processedVideoUrl: getVideoUrl(tweet)
+      processedVideoUrl: getVideoUrl(tweet),
+      // ↓ 以下の4つのフィールドを追加: text, authorProfileImageUrl, mediaCount, mediaType
+      text: tweet.content ?? "", // contentをtextとして扱う例
+      authorProfileImageUrl: "", // プロフィール画像URLを取得できるなら設定
+      mediaCount: 0,             // 何らかの計算があればここで反映
+      mediaType: "",              // メディアの種類など
+      authorName: tweet.authorName ?? "", // 必須なら空文字列を入れるなど
+      authorUsername: tweet.authorUsername ?? "" // ここを追加
     }))
   ) || [];
   
