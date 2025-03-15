@@ -15,7 +15,18 @@ const nextConfig = {
       'abs.twimg.com',      // Twitter メディア用
       'video.twimg.com'     // Twitter 動画用
     ]
-  }
+  },
+  async headers() {
+    return [
+      {
+        source: '/api/videoproxy',
+        headers: [
+          { key: 'Access-Control-Allow-Origin', value: '*' },
+          { key: 'Access-Control-Allow-Methods', value: 'GET' },
+        ],
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;
