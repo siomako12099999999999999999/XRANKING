@@ -82,13 +82,16 @@ export default function Home() {
     page.tweets.map((tweet: Tweet) => ({
       ...tweet,
       processedVideoUrl: getVideoUrl(tweet),
-      // ↓ 以下の4つのフィールドを追加: text, authorProfileImageUrl, mediaCount, mediaType
-      text: tweet.content ?? "", // contentをtextとして扱う例
-      authorProfileImageUrl: "", // プロフィール画像URLを取得できるなら設定
-      mediaCount: 0,             // 何らかの計算があればここで反映
-      mediaType: "",              // メディアの種類など
-      authorName: tweet.authorName ?? "", // 必須なら空文字列を入れるなど
-      authorUsername: tweet.authorUsername ?? "" // ここを追加
+      text: tweet.content ?? "", 
+      authorProfileImageUrl: "", 
+      mediaCount: 0,             
+      mediaType: "",              
+      authorName: tweet.authorName ?? "",
+      authorUsername: tweet.authorUsername ?? "",
+      createdAt: tweet.createdAt ?? new Date().toISOString(), // createdAtが未定義の場合は現在時刻を使用
+      videoUrl: tweet.videoUrl ?? "",  // nullの場合は空文字列に変換
+      likes: tweet.likes ?? 0,  // nullの場合は0に変換
+      retweets: tweet.retweets ?? 0,  // 必要に応じて追加
     }))
   ) || [];
   
