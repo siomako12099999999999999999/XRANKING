@@ -85,7 +85,12 @@ def insert_video_data(conn, video_data):
     """動画情報をデータベースに登録する（自動化版）"""
     cursor = conn.cursor()
     try:
-        video_url, tweet_url, likes, retweets, views, timestamp = video_data
+        # データの展開方法を変更
+        if len(video_data) >= 9:  # 新しい形式（投稿者情報を含む）
+            video_url, tweet_url, likes, retweets, views, timestamp, author_id, author_name, author_username = video_data
+        else:  # 古い形式との互換性のため
+            video_url, tweet_url, likes, retweets, views, timestamp = video_data
+            author_id, author_name, author_username = None, None, None
         
         # 数値指標の変換を強化（K, M表記対応）
         def convert_metric(value):
@@ -146,14 +151,21 @@ def insert_video_data(conn, video_data):
                 # 更新
                 cursor.execute("""
                     UPDATE Tweet
-                    SET videoUrl = ?, originalUrl = ?, likes = ?, retweets = ?, views = ?, updatedAt = GETDATE()
+                    SET videoUrl = ?, originalUrl = ?, likes = ?, retweets = ?, views = ?, 
+                        authorId = COALESCE(?, authorId), 
+                        authorName = COALESCE(?, authorName), 
+                        authorUsername = COALESCE(?, authorUsername), 
+                        updatedAt = GETDATE()
                     WHERE id = ?
                 """, (
                     video_url if should_update_video_url else current_video_url,
                     tweet_url if should_update_original_url else current_original_url,
                     likes, 
                     retweets, 
-                    views, 
+                    views,
+                    author_id,
+                    author_name, 
+                    author_username, 
                     tweet_db_id
                 ))
                 
@@ -169,9 +181,11 @@ def insert_video_data(conn, video_data):
                 # 新規挿入
                 cursor.execute("""
                     INSERT INTO Tweet 
-                    (id, tweetId, videoUrl, originalUrl, likes, retweets, views, timestamp, createdAt, updatedAt)
-                    VALUES (NEWID(), ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE())
-                """, (tweet_id, video_url, tweet_url, likes, retweets, views, timestamp))
+                    (id, tweetId, videoUrl, originalUrl, likes, retweets, views, timestamp, 
+                     authorId, authorName, authorUsername, createdAt, updatedAt)
+                    VALUES (NEWID(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE())
+                """, (tweet_id, video_url, tweet_url, likes, retweets, views, timestamp, 
+                     author_id, author_name, author_username))
                 print(f"➕ 新規データを挿入しました: {tweet_id}")
             
             # 即時コミットして確実に保存
@@ -291,6 +305,8 @@ def login_to_twitter(page):
         print(f"❌ ログイン処理中にエラーが発生しました: {e}")
         return False
 
+# search_videos 関数内の動画情報取得部分を修正
+
 def search_videos(page, query):
     """指定されたクエリで動画を検索し、データベースに登録する"""
     print(f"🔍 動画を検索: {query}")
@@ -391,6 +407,27 @@ def search_videos(page, query):
                         continue
                     processed_urls.add(tweet_url)
                     
+                    # 以下を追加: 投稿者情報の取得
+                    author_id = None
+                    author_name = None
+                    author_username = None
+                    
+                    # 投稿者のユーザー名を取得
+                    try:
+                        # ユーザー名セレクター - より具体的なセレクターを使用
+                        username_elem = video.query_selector('div[data-testid="User-Name"] a[href^="/"]')
+                        if username_elem:
+                            author_username = username_elem.get_attribute("href").replace("/", "")
+                            print(f"✅ ユーザー名: @{author_username}")
+                            
+                        # ユーザー表示名の取得
+                        display_name_elem = video.query_selector('div[data-testid="User-Name"] a span')
+                        if display_name_elem:
+                            author_name = display_name_elem.text_content().strip()
+                            print(f"✅ 表示名: {author_name}")
+                    except Exception as e:
+                        print(f"⚠️ ユーザー情報の取得に失敗: {e}")
+                    
                     # 実際の動画URLを取得
                     video_url = None
                     video_elem = video.query_selector('video')
@@ -464,8 +501,8 @@ def search_videos(page, query):
                     timestamp = time_elem.get_attribute("datetime") if time_elem else None
                     
                     if timestamp:
-                        # データタプルに元のツイートURLも含めるように変更
-                        video_data = (video_url, tweet_url, likes, retweets, views, timestamp)
+                        # 投稿者情報も含めるように変更
+                        video_data = (video_url, tweet_url, likes, retweets, views, timestamp, author_id, author_name, author_username)
                         
                         # グローバルリストに追加（バックアップ用）
                         temp_video_data.append(video_data)
@@ -628,12 +665,18 @@ def autosave_data():
 
 # 新しい関数を追加 - ツイートページから動画URLを取得
 def extract_video_url_from_tweet(page, tweet_url):
-    """ツイートページから実際の動画ファイルのURLを抽出する"""
+    """ツイートページから実際の動画ファイルのURLと投稿者情報を抽出する"""
     try:
         print(f"🎬 ツイートページから動画URLを抽出中: {tweet_url}")
         
         # 現在のURLを保存
         current_url = page.url
+        
+        # 戻り値用のデータ
+        video_url = None
+        author_id = None
+        author_name = None
+        author_username = None
         
         try:
             # ツイートページに移動
@@ -644,16 +687,26 @@ def extract_video_url_from_tweet(page, tweet_url):
             # コンテンツが読み込まれるまでちょっと待機
             time.sleep(2)
             
-            # 動画要素を探す - まずビデオプレーヤーが表示されるのを待機
-            print("  🔍 動画要素を検索中...")
+            # 投稿者情報を取得
             try:
-                page.wait_for_selector('div[data-testid="videoPlayer"]', timeout=10000)
-            except:
-                print("  ⚠️ ビデオプレーヤーが見つかりません")
+                # ユーザー名の取得
+                username_elem = page.query_selector('div[data-testid="User-Name"] a[href^="/"]')
+                if username_elem:
+                    username = username_elem.get_attribute("href").replace("/", "")
+                    author_username = username
+                    print(f"  ✅ ユーザー名: @{author_username}")
+                
+                # 表示名の取得
+                name_elem = page.query_selector('div[data-testid="User-Name"] a span')
+                if name_elem:
+                    author_name = name_elem.text_content().strip()
+                    print(f"  ✅ 表示名: {author_name}")
+                
+                # ユーザーIDは技術的に取得困難なため、ここではスキップ
+            except Exception as e:
+                print(f"  ⚠️ 投稿者情報の取得に失敗: {e}")
             
-            # 複数の方法で動画URLを探す
-            video_url = None
-            
+            # 動画URLの抽出（既存コード）
             # 方法1: video要素から直接src属性を取得
             try:
                 video_url = page.evaluate('''() => {
@@ -745,7 +798,8 @@ def extract_video_url_from_tweet(page, tweet_url):
         except Exception as e:
             print(f"  ⚠️ 元のページに戻る際にエラー: {e}")
     
-    return video_url
+    # 動画URL取得後に投稿者情報も追加して返すように変更
+    return video_url, author_id, author_name, author_username
 
 def main():
     # データベース構造を確認
@@ -1023,21 +1077,26 @@ def update_all_tweet_data():
                 
                 # 動画URLを更新
                 if current_video_url and 'twitter.com' in current_video_url and 'video.twimg.com' not in current_video_url:
-                    video_url = extract_video_url_from_tweet(page, current_video_url)
+                    # 投稿者情報も一緒に取得
+                    video_url, author_id, author_name, author_username = extract_video_url_from_tweet(page, current_video_url)
                     
                     if video_url and 'video.twimg.com' in video_url:
                         print(f"✅ 新しい動画URL: {video_url}")
                         try:
                             cursor.execute("""
                                 UPDATE Tweet 
-                                SET videoUrl = ?, originalUrl = COALESCE(originalUrl, ?), updatedAt = GETDATE()
+                                SET videoUrl = ?, originalUrl = COALESCE(originalUrl, ?), 
+                                    authorId = COALESCE(?, authorId),
+                                    authorName = COALESCE(?, authorName), 
+                                    authorUsername = COALESCE(?, authorUsername),
+                                    updatedAt = GETDATE()
                                 WHERE id = ?
-                            """, (video_url, current_video_url, record_id))
+                            """, (video_url, current_video_url, author_id, author_name, author_username, record_id))
                             conn.commit()
                             updated_count += 1
-                            print(f"✅ 動画URLを更新しました: {record_id}")
+                            print(f"✅ レコードを更新しました: {record_id}")
                         except Exception as e:
-                            print(f"❌ 動画URL更新エラー: {e}")
+                            print(f"❌ 更新エラー: {e}")
                             conn.rollback()
                     else:
                         print(f"❌ 動画URLを取得できませんでした: {current_video_url}")
@@ -1083,6 +1142,5 @@ if __name__ == "__main__":
             print(f"不明なコマンド: {sys.argv[1]}")
     else:
         main()
-
 
 

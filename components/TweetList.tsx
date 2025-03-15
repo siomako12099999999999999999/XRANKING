@@ -1,40 +1,30 @@
 import React from 'react';
-import Link from 'next/link';
-import { formatNumber, formatDate } from '../lib/utils';
-import TwitterCard from './TwitterCard';
+import TweetCard from '../components/TweetCard'; // './TweetCard' を '../components/TweetCard' に修正
 
-interface Tweet {
-  id: string;
-  tweetId: string;
-  content: string | null;
-  videoUrl: string | null;
-  processedVideoUrl: string | null; // 処理済み動画URL
-  likes: number | string;
-  retweets: number | string;
-  views: number | string;
-  timestamp: string;
-  authorName?: string;
-  authorUsername?: string;
-}
+// インポートするインターフェース
+import { ProcessedTweet } from '@/types/tweet';
 
 interface TweetListProps {
-  tweets: Tweet[];
-  useProxy?: boolean;
+  tweets: ProcessedTweet[];
+  useProxy: boolean;
 }
 
-const TweetList = ({ tweets, useProxy = true }: TweetListProps) => {
-  if (!tweets || tweets.length === 0) {
-    return <div className="text-center py-10">表示するツイートがありません</div>;
+const TweetList: React.FC<TweetListProps> = ({ tweets, useProxy }) => {
+  if (!tweets.length) {
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-8 text-center">
+        <p className="text-gray-600 dark:text-gray-400">表示できる動画がありません</p>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {tweets.map((tweet) => (
-        <TwitterCard 
+        <TweetCard 
           key={tweet.id} 
           tweet={tweet} 
-          videoUrl={tweet.processedVideoUrl || tweet.videoUrl}
-          useProxy={useProxy}
+          videoUrl={tweet.processedVideoUrl}
         />
       ))}
     </div>
