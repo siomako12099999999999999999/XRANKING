@@ -62,56 +62,52 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Header>
-        <div className="container mx-auto px-4 py-8">
-          <div className="mb-8 text-center">
-            <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              XRANKING
-              <span className="block text-lg font-normal text-gray-600 dark:text-gray-300 mt-2">
-                人気の動画投稿をチェック
-              </span>
-            </h1>
-          </div>
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8 text-center">
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+            XRANKING
+            <span className="block text-lg font-normal text-gray-600 dark:text-gray-300 mt-2">
+              人気の動画投稿をチェック
+            </span>
+          </h1>
+        </div>
 
-          <div className="flex flex-col lg:flex-row gap-6">
-            {/* サイドバー */}
-            <div className="lg:w-1/4">
-              <div className="sticky top-24 bg-white dark:bg-gray-800 rounded-xl shadow-sm p-5">
-                <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">絞り込み検索</h2>
-                <SearchFilters 
-                  initialPeriod={period}
-                  initialSort={sort}
-                  onFilterChange={handleFilterChange}
-                />
-              </div>
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* サイドバー */}
+          <div className="lg:w-1/4">
+            <div className="sticky top-24 bg-white dark:bg-gray-800 rounded-xl shadow-sm p-5">
+              <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">絞り込み検索</h2>
+              <SearchFilters 
+                initialPeriod={period}
+                initialSort={sort}
+                onFilterChange={handleFilterChange}
+              />
             </div>
-            
-            {/* メインコンテンツ */}
-            <div className="lg:w-3/4">
-              {status === 'pending' || status === 'loading' ? (
-                <TweetSkeleton count={5} />
-              ) : status === 'error' ? (
-                <ErrorMessage error={error as Error} onRetry={() => refetch()} />
-              ) : tweets.length === 0 ? (
-                <EmptyState />
-              ) : (
-                <>
-                  <TweetList tweets={tweets} />
-                  
-                  {hasNextPage && (
-                    <LoadMoreButton
-                      onClick={handleLoadMore}
-                      isLoading={isFetchingNextPage}
-                    />
-                  )}
-                </>
-              )}
-            </div>
+          </div>
+          
+          {/* メインコンテンツ */}
+          <div className="lg:w-3/4">
+            {status === 'pending' || status === 'loading' ? (
+              <TweetSkeleton count={5} />
+            ) : status === 'error' ? (
+              <ErrorMessage error={error as Error} onRetry={() => refetch()} />
+            ) : tweets.length === 0 ? (
+              <EmptyState />
+            ) : (
+              <>
+                <TweetList tweets={tweets} />
+                
+                {hasNextPage && (
+                  <LoadMoreButton
+                    onClick={handleLoadMore}
+                    isLoading={isFetchingNextPage}
+                  />
+                )}
+              </>
+            )}
           </div>
         </div>
-        
-        <Footer />
-      </Header>
+      </div>
     </main>
   );
 }
