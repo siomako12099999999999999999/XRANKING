@@ -23,7 +23,7 @@ if (!fs.existsSync(prerenderManifestPath)) {
 
 // Next.js アプリケーションの設定
 const dev = process.env.NODE_ENV !== 'production';
-const hostname = 'localhost';
+const hostname = process.env.RAILWAY_STATIC_URL || 'localhost';
 const port = process.env.PORT || 3000;
 
 // カスタムエラーハンドラーを含むNext.jsアプリ
@@ -65,8 +65,12 @@ app.prepare()
         res.setHeader('Content-Type', 'text/plain');
         res.end('Internal Server Error');
       }
-    }).listen(port, (err) => {
-      if (err) throw err;
+    })
+    .once('error', (err) => {
+      console.error(err);
+      process.exit(1);
+    })
+    .listen(port, () => {
       console.log(`> Ready on http://${hostname}:${port}`);
     });
   })
