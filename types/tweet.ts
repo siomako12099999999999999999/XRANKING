@@ -8,15 +8,16 @@ export interface Tweet {
   tweetId: string;
   content: string | null;
   videoUrl: string | null;
-  originalUrl?: string | null;
   likes: number | null;
   retweets: number | null;
   views: number | null;
   timestamp: string;
-  authorId?: string;
-  authorName?: string;
-  authorUsername?: string;
-  createdAt?: string;
+  authorName?: string | null;
+  authorUsername?: string | null;
+  authorProfileImageUrl?: string | null;
+  originalUrl?: string | null;
+  mediaType?: string;
+  mediaCount?: number;
   updatedAt?: string;
 }
 
@@ -25,22 +26,24 @@ export interface Tweet {
  */
 export interface ProcessedTweet {
   id: string;
-  text: string;
-  authorName: string;
-  authorUsername: string;
-  authorProfileImageUrl: string;
-  createdAt: string;
-  mediaCount: number;
-  videoUrl: string | null;  // nullを許容するように変更
-  direct_video_url?: string; // すでに存在
-  video_url?: string;        // すでに存在
-  thumbnail_url?: string;
+  tweetId: string;
+  content: string | null;
+  videoUrl: string | null;
+  processedVideoUrl: string | null;
   likes: number;
   retweets: number;
   views: number;
+  timestamp: string;
+  authorName: string;
+  authorUsername: string;
+  authorProfileImageUrl: string | null;
+  originalUrl: string;
   mediaType: string;
-  processedVideoUrl?: string;
-  // directVideoUrlはdirect_video_urlと重複するため不要です
+  mediaCount: number;
+  text: string;
+  createdAt: string;
+  updatedAt?: string;
+  thumbnail_url?: string; // サムネイル画像のURL（任意）
 }
 
 /**
@@ -49,9 +52,13 @@ export interface ProcessedTweet {
 export interface TweetsResponse {
   tweets: Tweet[];
   meta: {
-    total: number;
     page: number;
-    limit: number;
     pageCount: number;
+    totalItems: number;
   };
+}
+
+export interface TweetListProps {
+  tweets: ProcessedTweet[];
+  useProxy: boolean;
 }

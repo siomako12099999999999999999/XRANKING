@@ -3,21 +3,22 @@ import Image from 'next/image';
 import { formatDistanceToNow } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { FiHeart, FiRepeat, FiEye, FiExternalLink, FiPlay } from 'react-icons/fi';
+import VideoPlayer from './VideoPlayer';
 
-interface Tweet {
+export interface Tweet {
   id: string;
   tweetId: string;
-  content: string | null;
-  videoUrl: string | null;
-  originalUrl?: string | null;
-  likes: number | null;
-  retweets: number | null;
-  views: number | null;
-  timestamp: string | Date;
-  authorName?: string | null;
-  authorUsername?: string | null;
+  content: string;
+  videoUrl: string;
+  likes: number;
+  retweets: number;
+  views: number;
+  timestamp: string;
+  authorName?: string;
+  authorUsername?: string;
   authorProfileImageUrl?: string | null;
-  thumbnailUrl?: string | null;
+  thumbnailUrl?: string;
+  originalUrl?: string; // originalUrl プロパティを追加
 }
 
 interface TwitterCardProps {
@@ -28,8 +29,7 @@ interface TwitterCardProps {
 }
 
 // 数値を省略表記に変換（例: 1200 → 1.2K）
-const formatNumber = (num: number | null): string => {
-  if (!num) return '0';
+const formatNumber = (num: number): string => {
   if (num >= 1000000) {
     return `${(num / 1000000).toFixed(1)}M`;
   }
@@ -197,72 +197,12 @@ const TwitterCard: React.FC<TwitterCardProps> = ({
         )}
         
         {/* 動画プレーヤー */}
-        {(tweet.videoUrl || videoUrl) && (
-          <div 
-            className="relative rounded-xl overflow-hidden mb-3"
-            onMouseEnter={() => setShowControls(true)}
-            onMouseLeave={() => setShowControls(false)}
-          >
-            {isVideoError ? (
-              <div className="w-full aspect-video bg-gray-200 dark:bg-gray-700 flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <p>動画の読み込みに失敗しました</p>
-                <a 
-                  href={tweet.originalUrl || `https://twitter.com/user/status/${tweet.tweetId}`} 
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-2 text-blue-600 dark:text-blue-400 hover:underline"
-                >
-                  Twitterで見る
-                </a>
-              </div>
-            ) : (
-              <>
-                <video 
-                  ref={videoRef}
-                  src={videoUrl || tweet.videoUrl || ''}
-                  controls={showControls}
-                  preload="metadata"
-                  className="w-full max-h-[500px] object-contain bg-black"
-                  poster={tweet.thumbnailUrl || undefined}
-                  playsInline
-                  onClick={togglePlay}
-                  onError={handleVideoError}
-                  muted={isMuted}
-                />
-                
-                {!showControls && !isPlaying && (
-                  <button 
-                    className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 hover:bg-opacity-40 transition-opacity"
-                    onClick={togglePlay}
-                    aria-label="再生"
-                  >
-                    <FiPlay className="h-16 w-16 text-white opacity-80" />
-                  </button>
-                )}
-                
-                <div className={`absolute bottom-2 right-2 flex space-x-2 ${showControls ? 'opacity-100' : 'opacity-0'} transition-opacity`}>
-                  <button
-                    className="p-2 rounded-full bg-black bg-opacity-50 text-white hover:bg-opacity-70"
-                    onClick={toggleMute}
-                    aria-label={isMuted ? 'ミュート解除' : 'ミュート'}
-                  >
-                    {isMuted ? (
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" clipRule="evenodd" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
-                      </svg>
-                    ) : (
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                      </svg>
-                    )}
-                  </button>
-                </div>
-              </>
-            )}
+        {tweet.videoUrl && (
+          <div className="rounded-xl overflow-hidden mb-3">
+            <VideoPlayer 
+              src={useProxy ? `/api/video/${tweet.tweetId}` : (videoUrl || tweet.videoUrl)}
+              posterImage={tweet.thumbnailUrl}
+            />
           </div>
         )}
         

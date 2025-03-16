@@ -65,41 +65,18 @@ export default function MobileView() {
 
   // 動画URLを適切に変換する関数を最適化
   const getVideoUrl = (tweet: ProcessedTweet): string | null => {
-    // videoUrl または video_url のいずれかが存在するか確認
-    const originalUrl = tweet.videoUrl || tweet.video_url;
+    // videoUrlプロパティのみを参照
+    const originalUrl = tweet.videoUrl;
     if (!originalUrl) return null;
-
+  
     // 直接URLが存在し、プロキシがタイムアウトした場合は直接URLを返す
-    const directUrl = tweet.direct_video_url; // 修正: directVideoUrl → direct_video_url
-    if (directUrl && proxyTimeout[tweet.id]) {
-      console.log(`Using direct URL for ${tweet.id} due to proxy timeout`);
-      return directUrl;
+    // video.twimg.com形式のURLの場合はプロキシを使用
+    if (originalUrl.includes('video.twimg.com')) {
+      return `/api/videoproxy?url=${encodeURIComponent(originalUrl)}`;
     }
     
-    // プロキシモードの場合
-    if (useProxy) {
-      // プロキシURL（例: /api/proxy?url=エンコードされたURL）
-      const proxyUrl = `/api/proxy?url=${encodeURIComponent(originalUrl)}`;
-      
-      // プロキシURLを返す前にロード状態を設定
-      if (!proxyLoading[tweet.id]) {
-        setProxyLoading((prev: Record<string, boolean>) => ({ ...prev, [tweet.id]: true }));
-        
-        // プロキシタイムアウトを5秒に延長（パフォーマンス改善）
-        setTimeout(() => {
-          // 5秒後にも読み込み中であればタイムアウト処理
-          if (proxyLoading[tweet.id]) {
-            console.log(`Proxy loading timeout for ${tweet.id}`);
-            setProxyTimeout((prev: Record<string, boolean>) => ({ ...prev, [tweet.id]: true }));
-          }
-        }, 5000);
-      }
-      
-      return proxyUrl;
-    }
-    
-    // プロキシを使わない場合は直接URLまたは元のURL
-    return directUrl || originalUrl;
+    // それ以外のURLはそのまま返す
+    return originalUrl;
   };
 
   // 動画読み込みイベントの追加
@@ -142,7 +119,8 @@ export default function MobileView() {
   const tweets: ProcessedTweet[] = data?.pages.flatMap(page => 
     page.tweets.map((tweet: any) => ({
       ...tweet,
-      processedVideoUrl: getVideoUrl(tweet)
+      processedVideoUrl: getVideoUrl(tweet),
+      thumbnail_url: tweet.thumbnail_url || tweet.authorProfileImageUrl || null
     }))
   ) || [];
 
@@ -632,7 +610,8 @@ useEffect(() => {
         >
           {tweets.map((tweet, index) => {
             const videoUrl = getVideoUrl(tweet);
-            const thumbnailUrl = tweet.thumbnail_url || '';
+            // thumbnail_urlプロパティが存在しない場合はデフォルト値を使用
+            const thumbnailUrl = (tweet as any).thumbnail_url || tweet.authorProfileImageUrl || '';
             
             return (
               <div
@@ -710,7 +689,9 @@ useEffect(() => {
       {/* 次のページ読み込み中インジケーター */}
       {isFetchingNextPage && (
         <div className="absolute bottom-4 right-4 z-50">
-          <LoadingSpinner size="h-8 w-8" />
+          <LoadingSpinner size="h-12 w-12" />
+          <LoadingSpinner color="border-red-500" />
+          <LoadingSpinner size="h-16 w-16" color="border-green-500" />
         </div>
       )}
       

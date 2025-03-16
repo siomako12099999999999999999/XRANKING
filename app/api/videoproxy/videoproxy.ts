@@ -21,6 +21,11 @@ export async function GET(request: NextRequest) {
       return new NextResponse('動画の取得に失敗しました', { status: response.status });
     }
 
+    if (!response.body) {
+      console.error('レスポンスボディが空です');
+      return new NextResponse('動画データが見つかりません', { status: 500 });
+    }
+
     const headers = new Headers({
       'Content-Type': response.headers.get('Content-Type') || 'video/mp4',
       'Content-Length': response.headers.get('Content-Length') || '',
@@ -28,15 +33,8 @@ export async function GET(request: NextRequest) {
       'Cache-Control': 'public, max-age=86400',
     });
 
-    // レンジリクエストのサポート
-    const rangeHeader = request.headers.get('range');
-    if (rangeHeader && response.headers.has('Content-Range')) {
-      headers.set('Accept-Ranges', 'bytes');
-      headers.set('Content-Range', response.headers.get('Content-Range') || '');
-    }
-    
     return new NextResponse(response.body, {
-      status: response.status,
+      status: 200,
       headers,
     });
   } catch (error) {

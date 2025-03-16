@@ -90,26 +90,26 @@ export async function GET(request: NextRequest) {
     try {
       // データベースからツイートを取得
       const tweets = await prisma.tweet.findMany({
-        where: dateFilter,
-        orderBy,
-        skip,
         take: limit,
-        // 必要なフィールドだけを選択
+        skip: (page - 1) * limit,
+        orderBy: orderBy,
+        where: dateFilter,
         select: {
           id: true,
           tweetId: true,
           content: true,
           videoUrl: true,
+          thumbnailUrl: true, // 追加済み
           likes: true,
           retweets: true,
           views: true,
           timestamp: true,
-          authorId: true,
+          // authorId: true, // コメントアウトまたは削除
           authorName: true,
           authorUsername: true,
+          authorProfileImageUrl: true, // 追加済み
           createdAt: true,
-          updatedAt: true
-        }
+        },
       });
 
       // 合計件数を取得

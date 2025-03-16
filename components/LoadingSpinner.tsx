@@ -1,13 +1,18 @@
 import React from 'react';
-import { FaBars, FaTimes, FaTwitter } from 'react-icons/fa';
 
-interface LoadingSpinnerProps {
+export interface LoadingSpinnerProps {
   size?: string;
+  color?: string;
 }
 
-const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ size = "h-6 w-6" }) => {
+const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ 
+  size = "h-8 w-8", 
+  color = "border-blue-500" 
+}) => {
   return (
-    <div className={`animate-spin rounded-full border-4 border-gray-300 border-t-blue-600 ${size}`}></div>
+    <div className="flex justify-center items-center py-4">
+      <div className={`animate-spin rounded-full ${size} border-t-2 border-b-2 ${color}`}></div>
+    </div>
   );
 };
 

@@ -6,34 +6,28 @@ const logger = winston.createLogger({
   format: winston.format.json(),
   defaultMeta: { service: 'xranking' },
   transports: [
-    new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
-    new winston.transports.File({ filename: 'logs/combined.log' })
-  ]
+    new winston.transports.Console({
+      format: winston.format.combine(
+        winston.format.colorize(),
+        winston.format.simple()
+      ),
+    }),
+    // 本番環境ではファイルへのログ記録も追加できます
+    // new winston.transports.File({ filename: 'error.log', level: 'error' }),
+    // new winston.transports.File({ filename: 'combined.log' }),
+  ],
 });
 
-if (process.env.NODE_ENV !== 'production') {
-  logger.add(new winston.transports.Console({
-    format: winston.format.simple()
-  }));
-}
-
-export function logApiRequest(req: NextApiRequest, res: NextApiResponse, duration: number) {
-  logger.info({
-    method: req.method,
-    url: req.url,
-    query: req.query,
-    duration: `${duration}ms`,
-    status: res.statusCode,
-    userAgent: req.headers['user-agent']
+// API リクエストのログを記録するミドルウェア
+export function loggerMiddleware(req: NextApiRequest, res: NextApiResponse, next: () => void) {
+  const start = Date.now();
+  
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    logger.info(`${req.method} ${req.url} ${res.statusCode} - ${duration}ms`);
   });
-}
-
-export function logError(error: Error, context?: any) {
-  logger.error({
-    message: error.message,
-    stack: error.stack,
-    context
-  });
+  
+  next();
 }
 
 export default logger;

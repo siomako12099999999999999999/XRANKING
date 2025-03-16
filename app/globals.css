@@ -111,4 +111,12 @@
   .animate-pulse {
     animation: pulse 1.5s ease-in-out infinite;
   }
+  
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* Internet Explorer と Edge 用 */
+    scrollbar-width: none;  /* Firefox 用 */
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari, Opera 用 */
+  }
 }

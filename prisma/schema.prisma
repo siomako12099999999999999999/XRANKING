@@ -8,17 +8,20 @@ datasource db {
 }
 
 model Tweet {
-  id             String    @id(map: "PK__Tweet__3213E83FF9FE81E2") @default("newid()", map: "DF__Tweet__id__55BFB948") @db.NVarChar(128)
-  tweetId        String?   @unique(map: "UQ__Tweet__CF49AE9C3B9627D8") @db.NVarChar(128)
-  content        String?   @db.NVarChar(Max)
-  videoUrl       String?   @db.NVarChar(2048)
-  likes          Int?      @default(0, map: "DF__Tweet__likes__56B3DD81")
-  retweets       Int?      @default(0, map: "DF__Tweet__retweets__57A801BA")
-  views          Int?      @default(0, map: "DF__Tweet__views__589C25F3")
-  timestamp      DateTime? @default(now(), map: "DF__Tweet__timestamp__59904A2C")
-  authorId       String?   @db.NVarChar(128)
-  authorName     String?   @db.NVarChar(255)
-  authorUsername String?   @db.NVarChar(255)
-  createdAt      DateTime? @default(now(), map: "DF__Tweet__createdAt__5A846E65")
-  updatedAt      DateTime? @default(now(), map: "DF__Tweet__updatedAt__5B78929E") @updatedAt
+  id                   String   @id @default(cuid())
+  tweetId              String   @unique
+  content              String   @db.Text
+  videoUrl             String
+  thumbnailUrl         String?  // 追加
+  likes                Int      @default(0)
+  retweets             Int      @default(0)
+  views                Int      @default(0)
+  timestamp            DateTime
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  authorId             String?  // 追加
+  authorName           String?
+  authorUsername       String?
+  authorProfileImageUrl String?  // 追加
+  originalUrl          String?  // 必要に応じて追加
 }

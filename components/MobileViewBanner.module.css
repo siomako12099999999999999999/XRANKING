@@ -1,0 +1,8 @@
+.scrollbarHide {
+  -ms-overflow-style: none;  /* Internet Explorer と Edge 用 */
+  scrollbar-width: none;  /* Firefox 用 */
+}
+
+.scrollbarHide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari, Opera 用 */
+}
