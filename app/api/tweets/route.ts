@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 // BigIntをシリアライズ可能な形に変換するヘルパー関数
 function serializeBigInt(data: any): any {
@@ -26,121 +27,119 @@ function serializeBigInt(data: any): any {
   return data;
 }
 
+// select句の型を定義
+type TweetSelect = {
+  id: boolean;
+  tweetId: boolean; // tweetIdを必ず含める
+  content: boolean;
+  videoUrl: boolean;
+  likes: boolean;
+  retweets: boolean;
+  views: boolean;
+  timestamp: boolean;
+  authorName: boolean;
+  authorUsername: boolean;
+  authorProfileImageUrl: boolean;
+  createdAt: boolean;
+};
+
+const selectFields: TweetSelect = {
+  id: true,
+  tweetId: true, // tweetIdを必ず含める
+  content: true,
+  videoUrl: true,
+  likes: true,
+  retweets: true,
+  views: true,
+  timestamp: true,
+  authorName: true,
+  authorUsername: true,
+  authorProfileImageUrl: true,
+  createdAt: true,
+};
+
+// Prismaの型を使用してソート条件の型を定義
+type OrderByInput = {
+  [K in keyof Prisma.TweetOrderByWithRelationInput]?: Prisma.SortOrder;
+};
+
+// ソート条件のマッピングを定義
+const sortMapping: Record<string, keyof Prisma.TweetOrderByWithRelationInput> = {
+  latest: 'timestamp',
+  trending: 'views',
+  likes: 'likes'
+};
+
 export async function GET(request: NextRequest) {
   try {
-    console.log("API: /api/tweets が呼び出されました");
-    
-    const searchParams = request.nextUrl.searchParams;
+    const { searchParams } = new URL(request.url);
     const period = searchParams.get('period') || 'week';
     const sort = searchParams.get('sort') || 'likes';
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = parseInt(searchParams.get('limit') || '10', 10);
-    const skip = (page - 1) * limit;
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '10');
 
-    console.log(`クエリパラメータ: period=${period}, sort=${sort}, page=${page}, limit=${limit}`);
+    // ソート条件の設定
+    const orderBy: OrderByInput = {
+      [sortMapping[sort as keyof typeof sortMapping] || 'likes']: 'desc'
+    };
 
-    // 期間に基づいてフィルタリング条件を設定
-    let dateFilter = {};
-    if (period !== 'all') {
-      const now = new Date();
-      let dateFrom = new Date();
-      
-      switch (period) {
-        case 'day':
-          dateFrom.setDate(now.getDate() - 1);
-          break;
-        case 'week':
-          dateFrom.setDate(now.getDate() - 7);
-          break;
-        case 'month':
-          dateFrom.setMonth(now.getMonth() - 1);
-          break;
-        default:
-          break;
+    // まず合計数を取得
+    const totalCount = await prisma.tweet.count({
+      where: {
+        ...(period !== 'all' && {
+          timestamp: {
+            gte: new Date(Date.now() - getPeriodInMilliseconds(period))
+          }
+        })
       }
-      
-      dateFilter = {
-        timestamp: {
-          gte: dateFrom
-        }
-      };
-    }
+    });
 
-    // ソート条件を設定
-    let orderBy: any = {};
-    switch (sort) {
-      case 'likes':
-        orderBy = { likes: 'desc' };
-        break;
-      case 'retweets':
-        orderBy = { retweets: 'desc' };
-        break;
-      case 'views':
-        orderBy = { views: 'desc' };
-        break;
-      case 'latest':
-        orderBy = { timestamp: 'desc' };
-        break;
-      default:
-        orderBy = { likes: 'desc' };
-    }
+    // ツイートを取得
+    const tweets = await prisma.tweet.findMany({
+      take: limit,
+      skip: (page - 1) * limit,
+      orderBy,
+      where: {
+        ...(period !== 'all' && {
+          timestamp: {
+            gte: new Date(Date.now() - getPeriodInMilliseconds(period))
+          }
+        })
+      },
+      select: selectFields
+    });
 
-    console.log("データベースクエリを実行中...");
-
-    try {
-      // データベースからツイートを取得
-      const tweets = await prisma.tweet.findMany({
-        take: limit,
-        skip: (page - 1) * limit,
-        orderBy: orderBy,
-        where: dateFilter,
-        select: {
-          id: true,
-          tweetId: true,
-          content: true,
-          videoUrl: true,
-          thumbnailUrl: true, // 追加済み
-          likes: true,
-          retweets: true,
-          views: true,
-          timestamp: true,
-          // authorId: true, // コメントアウトまたは削除
-          authorName: true,
-          authorUsername: true,
-          authorProfileImageUrl: true, // 追加済み
-          createdAt: true,
-        },
-      });
-
-      // 合計件数を取得
-      const total = await prisma.tweet.count({
-        where: dateFilter,
-      });
-
-      console.log(`取得結果: ${tweets.length}件のツイート, 合計${total}件`);
-
-      return NextResponse.json({
-        tweets,
-        meta: {
-          total,
-          page,
-          limit,
-          pageCount: Math.ceil(total / limit)
-        }
-      });
-    } catch (dbError: any) {
-      console.error('データベースクエリエラー:', dbError);
-      return NextResponse.json(
-        { error: 'データベースクエリの実行中にエラーが発生しました', details: dbError.message },
-        { status: 500 }
-      );
-    }
-  } catch (error: any) {
-    console.error('Tweet fetch error:', error);
     return NextResponse.json(
-      { error: 'ツイートの取得中にエラーが発生しました', details: error.message },
+      { 
+        tweets,
+        totalCount,
+        page,
+        limit,
+        hasMore: totalCount > (page * limit)
+      },
+      {
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET',
+          'Access-Control-Allow-Headers': 'Content-Type'
+        }
+      }
+    );
+  } catch (error: any) {
+    console.error('データベースクエリエラー:', error);
+    return NextResponse.json(
+      { error: 'Internal Server Error' },
       { status: 500 }
     );
+  }
+}
+
+function getPeriodInMilliseconds(period: string): number {
+  switch (period) {
+    case 'day': return 24 * 60 * 60 * 1000;
+    case 'week': return 7 * 24 * 60 * 60 * 1000;
+    case 'month': return 30 * 24 * 60 * 60 * 1000;
+    default: return 7 * 24 * 60 * 60 * 1000;
   }
 }
 

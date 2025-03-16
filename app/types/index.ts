@@ -34,3 +34,7 @@ interface ProcessedTweet {
 
 // エクスポート
 export type { Tweet, ProcessedTweet };
+
+export type Period = 'all' | 'day' | 'week' | 'month';
+export type SortType = 'likes' | 'latest' | 'trending' | 'retweets' | 'views';
+export type LoadingStatus = 'idle' | 'loading' | 'success' | 'error' | 'pending';

@@ -1,163 +1,117 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
-import TwitterCard from '@/components/TwitterCard';
-import LoadingSpinner from '@/components/LoadingSpinner';
-
-// APIレスポンスの型定義
-interface TweetResponse {
-  tweets: Array<{
-    id: string;
-    tweetId: string;
-    content: string;
-    videoUrl: string;
-    likes: number;
-    retweets: number;
-    views: number;
-    timestamp: string;
-    authorName?: string;
-    authorUsername?: string;
-    thumbnailUrl?: string;
-  }>;
-  meta: {
-    page: number;
-    pageCount: number;
-    totalItems: number;
-  };
-}
-
-// ツイート取得関数
-const fetchTweets = async ({ 
-  pageParam = 1, 
-  period = 'week', 
-  sort = 'likes' 
-}): Promise<TweetResponse> => {
-  const response = await fetch(`/api/tweets?page=${pageParam}&limit=10&period=${period}&sort=${sort}`);
-  
-  if (!response.ok) {
-    throw new Error('ツイートの取得中にエラーが発生しました');
-  }
-  
-  return response.json();
-};
+import Header from '@/components/Header';
+import SearchFilters from '@/components/SearchFilters';
+import TweetList from '@/components/TweetList';
+import Footer from '@/components/Footer';
+import TweetSkeleton from '@/components/TweetSkeleton';
+import ErrorMessage from '@/components/ErrorMessage';
+import EmptyState from '@/components/EmptyState';
+import LoadMoreButton from '@/components/LoadMoreButton';
+import { Period, SortType, LoadingStatus } from '@/app/types';
 
 export default function Home() {
-  const [period, setPeriod] = useState<string>('week');
-  const [sort, setSort] = useState<string>('likes');
+  // 状態変数を定義
+  const [period, setPeriod] = useState<Period>('week');
+  const [sort, setSort] = useState<SortType>('likes');
   
-  // 無限スクロールの設定
+  // 無限スクロール用のクエリを使用
   const { 
-    data, 
-    fetchNextPage, 
-    hasNextPage, 
-    isFetchingNextPage, 
-    status,
-    refetch 
+    data,
+    status = 'idle' as LoadingStatus,
+    error,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage
   } = useInfiniteQuery({
     queryKey: ['tweets', period, sort],
-    queryFn: ({ pageParam = 1 }) => fetchTweets({ pageParam, period, sort }),
-    getNextPageParam: (lastPage: TweetResponse) => {
-      if (lastPage.meta.page < lastPage.meta.pageCount) {
-        return lastPage.meta.page + 1;
+    queryFn: async ({ pageParam = 1 }) => {
+      const response = await fetch(`/api/tweets?period=${period}&sort=${sort}&page=${pageParam}&limit=10`);
+      if (!response.ok) {
+        throw new Error('サーバーエラーが発生しました');
       }
-      return undefined;
+      const data = await response.json();
+      return data;
+    },
+    getNextPageParam: (lastPage, allPages) => {
+      // サーバーからの総数が現在の取得数より多ければ次のページがある
+      const totalCount = lastPage.totalCount || 0;
+      const currentCount = allPages.flatMap(page => page.tweets).length;
+      return totalCount > currentCount ? allPages.length + 1 : undefined;
     },
     initialPageParam: 1,
+    enabled: true,
   });
-  
-  // フィルターが変わったらリフェッチ
-  useEffect(() => {
-    refetch();
-  }, [period, sort, refetch]);
-  
-  // スクロール検出
-  useEffect(() => {
-    const handleScroll = () => {
-      // 画面の下端から100px以内にスクロールしたら次のページを読み込む
-      if (
-        window.innerHeight + window.scrollY >= document.body.offsetHeight - 100 &&
-        hasNextPage &&
-        !isFetchingNextPage
-      ) {
-        fetchNextPage();
-      }
-    };
-    
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+
+  // 全てのツイートをフラット化
+  const tweets = data?.pages.flatMap(page => page.tweets) || [];
+
+  // フィルター変更ハンドラー
+  const handleFilterChange = (newPeriod: Period, newSort: SortType) => {
+    setPeriod(newPeriod);
+    setSort(newSort);
+  };
+
+  // もっと読み込むハンドラー
+  const handleLoadMore = () => {
+    fetchNextPage();
+  };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6 text-center">XRanking - 人気動画</h1>
-      
-      {/* フィルターセクション */}
-      <div className="flex flex-wrap justify-between items-center mb-6 gap-2">
-        {/* 期間選択 */}
-        <div className="space-x-2">
-          <span className="text-gray-700 dark:text-gray-300">期間:</span>
-          <select
-            className="border rounded-md px-2 py-1 bg-white dark:bg-gray-800"
-            value={period}
-            onChange={(e) => setPeriod(e.target.value)}
-          >
-            <option value="day">24時間</option>
-            <option value="week">1週間</option>
-            <option value="month">1ヶ月</option>
-            <option value="all">すべて</option>
-          </select>
-        </div>
-        
-        {/* ソート順 */}
-        <div className="space-x-2">
-          <span className="text-gray-700 dark:text-gray-300">並び替え:</span>
-          <select
-            className="border rounded-md px-2 py-1 bg-white dark:bg-gray-800"
-            value={sort}
-            onChange={(e) => setSort(e.target.value)}
-          >
-            <option value="likes">いいね数</option>
-            <option value="retweets">リツイート数</option>
-            <option value="views">視聴回数</option>
-            <option value="latest">新着順</option>
-          </select>
-        </div>
-      </div>
-      
-      {/* ステータス表示 */}
-      {status === 'pending' && <LoadingSpinner />}
-      
-      {status === 'error' && (
-        <div className="text-center text-red-500 py-8">
-          データの読み込み中にエラーが発生しました。お手数ですが、ページを再読み込みしてください。
-        </div>
-      )}
-      
-      {/* ツイート一覧 */}
-      <div className="space-y-4">
-        {status === 'success' && data.pages.map((page, i) => (
-          <React.Fragment key={i}>
-            {page.tweets.map((tweet) => (
-              <TwitterCard key={tweet.id} tweet={tweet} />
-            ))}
-          </React.Fragment>
-        ))}
-        
-        {/* 無限スクロール中のローディング表示 */}
-        {isFetchingNextPage && (
-          <div className="py-4 text-center">
-            <LoadingSpinner />
+    <main className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <Header>
+        <div className="container mx-auto px-4 py-8">
+          <div className="mb-8 text-center">
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+              XRANKING
+              <span className="block text-lg font-normal text-gray-600 dark:text-gray-300 mt-2">
+                人気の動画投稿をチェック
+              </span>
+            </h1>
           </div>
-        )}
-        
-        {/* データがない場合 */}
-        {status === 'success' && data.pages[0].tweets.length === 0 && (
-          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-            データがありません。別の期間を選択してみてください。
+
+          <div className="flex flex-col lg:flex-row gap-6">
+            {/* サイドバー */}
+            <div className="lg:w-1/4">
+              <div className="sticky top-24 bg-white dark:bg-gray-800 rounded-xl shadow-sm p-5">
+                <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">絞り込み検索</h2>
+                <SearchFilters 
+                  initialPeriod={period}
+                  initialSort={sort}
+                  onFilterChange={handleFilterChange}
+                />
+              </div>
+            </div>
+            
+            {/* メインコンテンツ */}
+            <div className="lg:w-3/4">
+              {status === 'pending' || status === 'loading' ? (
+                <TweetSkeleton count={5} />
+              ) : status === 'error' ? (
+                <ErrorMessage error={error as Error} onRetry={() => refetch()} />
+              ) : tweets.length === 0 ? (
+                <EmptyState />
+              ) : (
+                <>
+                  <TweetList tweets={tweets} />
+                  
+                  {hasNextPage && (
+                    <LoadMoreButton
+                      onClick={handleLoadMore}
+                      isLoading={isFetchingNextPage}
+                    />
+                  )}
+                </>
+              )}
+            </div>
           </div>
-        )}
-      </div>
-    </div>
+        </div>
+        
+        <Footer />
+      </Header>
+    </main>
   );
 }

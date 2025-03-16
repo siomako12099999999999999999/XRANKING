@@ -8,20 +8,19 @@ datasource db {
 }
 
 model Tweet {
-  id                   String   @id @default(cuid())
-  tweetId              String   @unique
-  content              String   @db.Text
-  videoUrl             String
-  thumbnailUrl         String?  // 追加
-  likes                Int      @default(0)
-  retweets             Int      @default(0)
-  views                Int      @default(0)
-  timestamp            DateTime
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
-  authorId             String?  // 追加
-  authorName           String?
-  authorUsername       String?
-  authorProfileImageUrl String?  // 追加
-  originalUrl          String?  // 必要に応じて追加
+  id                    String    @id @default(uuid())
+  tweetId               String?   @unique
+  content               String?   // null許容に変更
+  videoUrl              String?
+  originalUrl           String?
+  likes                 Int       @default(0)
+  retweets              Int       @default(0)
+  views                 Int       @default(0)
+  timestamp             DateTime  @default(now())
+  authorId              String?
+  authorName            String?
+  authorUsername        String?
+  authorProfileImageUrl String?   // 追加
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 }

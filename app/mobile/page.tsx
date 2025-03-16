@@ -2,13 +2,24 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { useRouter, useSearchParams } from 'next/navigation'; // useSearchParamsを追加
-import { FaChevronLeft, FaHeart, FaRetweet, FaEye, FaVolumeUp, FaVolumeMute, FaPlay, FaPause, FaCog } from 'react-icons/fa';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { FaVolumeUp, FaVolumeMute, FaPlay, FaPause, FaCog } from 'react-icons/fa';
 import { ProcessedTweet } from '@/types/tweet';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import MobileHeader from '@/components/MobileHeader';
 import TweetSkeleton from '@/components/TweetSkeleton';
-import { ProxySettingPanel } from '@/components/ProxySettingPanel';
+
+// 型定義
+type SortOption = 'likes' | 'trending' | 'latest';
+type PeriodOption = 'day' | 'week' | 'month';
+
+interface VideoProgress {
+  [key: string]: number;
+}
+
+interface ProxyState {
+  [key: string]: boolean;
+}
 
 // ソート順と期間のオプション
 const sortOptions = [
@@ -24,76 +35,62 @@ const periodOptions = [
 ];
 
 export default function MobileView() {
-  const searchParams = useSearchParams();
+  // 基本的な状態管理
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [useProxy, setUseProxy] = useState<boolean>(() => {
-    // ローカルストレージから設定を取得（デフォルトはtrue）
-    if (typeof window !== 'undefined') {
-      const savedSetting = localStorage.getItem('useProxyMode');
-      return savedSetting !== null ? savedSetting === 'true' : true;
-    }
-    return true;
-  });
   const [isMuted, setIsMuted] = useState(true);
-  const [isPaused, setIsPaused] = useState(false); // 追加: 再生/停止の状態
+  const [isPaused, setIsPaused] = useState(false);
   const [showGuide, setShowGuide] = useState(true);
-  const [showControls, setShowControls] = useState(false); // 追加: コントロールの表示状態
-  // 長押し検出用の状態と変数を追加
+  const [showControls, setShowControls] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
-  const isLongPress = useRef(false);
-  
-  // ソート順と期間の状態管理
-  const [sort, setSort] = useState(searchParams.get('sort') || 'likes');
-  const [period, setPeriod] = useState(searchParams.get('period') || 'week');
-  
+  const [progress, setProgress] = useState(0);
+  const [sortChangeIndicator, setSortChangeIndicator] = useState(false);
+  const [proxyTimeout, setProxyTimeout] = useState<ProxyState>({});
+  const [proxyLoading, setProxyLoading] = useState<ProxyState>({});
+
+  // refs
   const videoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
   const containerRef = useRef<HTMLDivElement>(null);
   const touchStartY = useRef<number | null>(null);
   const wheelDebounceTimer = useRef<NodeJS.Timeout | null>(null);
-  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null); // 追加: コントロール表示用タイマー
+  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const isLongPress = useRef(false);
+  const previousIndex = useRef<number>(currentIndex);
+
+  // ルーターとパラメーター
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const [sort, setSort] = useState<SortOption>(
+    (searchParams.get('sort') as SortOption) || 'likes'
+  );
+  const [period, setPeriod] = useState<PeriodOption>(
+    (searchParams.get('period') as PeriodOption) || 'week'
+  );
 
-  // プロキシのロード状態を追加
-  const [proxyLoading, setProxyLoading] = useState<Record<string, boolean>>({});
-  const [proxyTimeout, setProxyTimeout] = useState<Record<string, boolean>>({});
-
-  // メイン画面に戻る関数
-  const goBack = () => {
-    router.push('/');
-  };
-
-  // 動画URLを適切に変換する関数を最適化
-  const getVideoUrl = (tweet: ProcessedTweet): string | null => {
-    // videoUrlプロパティのみを参照
-    const originalUrl = tweet.videoUrl;
-    if (!originalUrl) return null;
-  
-    // 直接URLが存在し、プロキシがタイムアウトした場合は直接URLを返す
-    // video.twimg.com形式のURLの場合はプロキシを使用
-    if (originalUrl.includes('video.twimg.com')) {
-      return `/api/videoproxy?url=${encodeURIComponent(originalUrl)}`;
-    }
+  // データ取得関数を修正
+  const fetchTweets = async ({ pageParam = 1 }): Promise<{
+    tweets: ProcessedTweet[];
+    meta: { page: number; pageCount: number; }
+  }> => {
+    const response = await fetch(
+      `/api/tweets?page=${pageParam}&limit=10&sort=${sort}&period=${period}`
+    );
     
-    // それ以外のURLはそのまま返す
-    return originalUrl;
-  };
-
-  // 動画読み込みイベントの追加
-  const handleVideoLoad = (id: string) => {
-    setProxyLoading((prev: Record<string, boolean>) => ({ ...prev, [id]: false }));
-  };
-
-  // データ取得関数
-  const fetchTweets = async ({ pageParam = 1 }) => {
-    const response = await fetch(`/api/tweets?page=${pageParam}&limit=10&sort=${sort}&period=${period}`);
     if (!response.ok) {
       throw new Error('ツイートの取得に失敗しました');
     }
-    return response.json();
-  };
   
-  // 無限スクロールクエリ
+    const data = await response.json();
+    return {
+      tweets: data.tweets,
+      meta: {
+        page: pageParam,
+        pageCount: Math.ceil(data.totalCount / 10)
+      }
+    };
+  };
+
+  // useInfiniteQuery の設定
   const {
     data,
     fetchNextPage,
@@ -101,10 +98,10 @@ export default function MobileView() {
     isFetchingNextPage,
     status,
     error,
-    refetch, // 追加: データの再取得用
-    isFetching // 追加: データ取得中の状態
+    refetch,
+    isFetching
   } = useInfiniteQuery({
-    queryKey: ['mobile-tweets', sort, period], // sortとperiodを依存関係に追加
+    queryKey: ['mobile-tweets', sort, period],
     queryFn: fetchTweets,
     getNextPageParam: (lastPage) => {
       if (lastPage.meta.page < lastPage.meta.pageCount) {
@@ -114,15 +111,24 @@ export default function MobileView() {
     },
     initialPageParam: 1
   });
-  
-  // 全てのツイートを処理済みデータに変換
+
+  // ツイートデータの処理
   const tweets: ProcessedTweet[] = data?.pages.flatMap(page => 
-    page.tweets.map((tweet: any) => ({
+    page.tweets.map((tweet: ProcessedTweet) => ({
       ...tweet,
-      processedVideoUrl: getVideoUrl(tweet),
-      thumbnail_url: tweet.thumbnail_url || tweet.authorProfileImageUrl || null
+      videoUrl: tweet.videoUrl
     }))
   ) || [];
+
+  // 動画制御関数
+  const handleVideoLoad = (id: string) => {
+    console.log(`Video loaded: ${id}`);
+  };
+
+  const handleTimeUpdate = (videoElement: HTMLVideoElement) => {
+    const currentProgress = (videoElement.currentTime / videoElement.duration) * 100;
+    setProgress(currentProgress);
+  };
 
   // タッチイベントのハンドラー
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -266,7 +272,7 @@ const togglePlayPause = () => {
     setTimeout(() => setSortChangeIndicator(false), 1500);
     
     // ソート順を更新
-    setSort(newSort);
+    setSort(newSort as SortOption);
     setCurrentIndex(0); // 先頭に戻す
     
     // URLを更新
@@ -287,7 +293,7 @@ const togglePlayPause = () => {
     setTimeout(() => setSortChangeIndicator(false), 1500);
     
     // 期間を更新
-    setPeriod(newPeriod);
+    setPeriod(newPeriod as PeriodOption);
     setCurrentIndex(0); // 先頭に戻す
     
     // URLを更新
@@ -299,9 +305,6 @@ const togglePlayPause = () => {
       `${window.location.pathname}?${newParams.toString()}`
     );
   };
-
-  // ソート変更インジケーター用のstate
-  const [sortChangeIndicator, setSortChangeIndicator] = useState(false);
 
   // 次/前の動画に移動する関数
   const handleNextVideo = () => {
@@ -339,8 +342,6 @@ const togglePlayPause = () => {
   }, [currentIndex, tweets.length, showGuide]);
 
   // 現在の動画が変更されたら自動再生する処理も修正
-  const previousIndex = useRef<number>(currentIndex);
-
   useEffect(() => {
     if (tweets.length > 0 && tweets[currentIndex]) {
       const videoId = tweets[currentIndex].id;
@@ -377,7 +378,7 @@ const preloadNextVideos = () => {
     
     if (nextIndex < tweets.length) {
       const nextTweet = tweets[nextIndex];
-      const videoUrl = getVideoUrl(nextTweet);
+      const videoUrl = nextTweet.videoUrl;
       
       if (videoUrl) {
         // プリロード用の要素を作成
@@ -474,13 +475,6 @@ useEffect(() => {
     setShowSettings(false);
   };
 
-  // useProxyの値が変わったときにlocalStorageに保存
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('useProxyMode', useProxy.toString());
-    }
-  }, [useProxy]);
-
   // URLからソート順と期間を取得するロジックを強化
   useEffect(() => {
     // URLから取得したパラメータを適用
@@ -488,11 +482,11 @@ useEffect(() => {
     const periodParam = searchParams.get('period');
     
     if (sortParam && ['likes', 'trending', 'latest'].includes(sortParam)) {
-      setSort(sortParam);
+      setSort(sortParam as SortOption); // 型キャストを修正
     }
     
     if (periodParam && ['day', 'week', 'month'].includes(periodParam)) {
-      setPeriod(periodParam);
+      setPeriod(periodParam as PeriodOption); // 型キャストを修正
     }
   }, [searchParams]);
 
@@ -504,16 +498,7 @@ useEffect(() => {
     setCurrentIndex(0);
   };
 
-  // まず、新しいstateを追加
-  const [progress, setProgress] = useState(0);
-
-  // 動画の再生進捗を更新する関数を追加
-  const handleTimeUpdate = (videoElement: HTMLVideoElement) => {
-    const progress = (videoElement.currentTime / videoElement.duration) * 100;
-    setProgress(progress);
-  };
-
-  // 動画のシーク処理を追加
+  // シーク処理を追加
   const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
     const currentVideo = tweets[currentIndex] ? 
       videoRefs.current[tweets[currentIndex].id] : null;
@@ -550,7 +535,7 @@ useEffect(() => {
         
         {/* 再生/一時停止ボタン */}
         <button
-          onClick={togglePlayPause}
+          onClick={togglePlayPause}  // 設定ボタンを再生/一時停止ボタンに変更
           className="text-white p-2 rounded-full bg-black bg-opacity-50"
           aria-label={isPaused ? "再生" : "一時停止"}
         >
@@ -609,7 +594,7 @@ useEffect(() => {
           onClick={handleScreenTap}
         >
           {tweets.map((tweet, index) => {
-            const videoUrl = getVideoUrl(tweet);
+            const videoUrl = tweet.videoUrl; // 直接 videoUrl を使用
             // thumbnail_urlプロパティが存在しない場合はデフォルト値を使用
             const thumbnailUrl = (tweet as any).thumbnail_url || tweet.authorProfileImageUrl || '';
             
@@ -651,7 +636,12 @@ useEffect(() => {
                       autoPlay={!isPaused && index === currentIndex}
                       onLoadedData={() => handleVideoLoad(tweet.id)}
                       onTimeUpdate={(e) => handleTimeUpdate(e.currentTarget)}
-                    />
+                      controlsList="nodownload noplaybackrate"
+                      poster={tweet.authorProfileImageUrl || undefined}
+                    >
+                      <source src={videoUrl} type="video/mp4" />
+                      お使いのブラウザは動画の再生をサポートしていません。
+                    </video>
                     {/* シークバーを常時表示に変更 */}
                     {index === currentIndex && (
                       <div 
@@ -663,7 +653,7 @@ useEffect(() => {
                           onClick={handleSeek}
                         >
                           <div 
-                            className="h-full bg-white/80 hover:bg白 rounded-full transition-all duration-100"
+                            className="h-full bg白 rounded-full transition-all duration-100"
                             style={{ width: `${progress}%` }}
                           />
                         </div>
@@ -715,19 +705,6 @@ useEffect(() => {
           </div>
         </div>
       )}
-
-      {/* 設定パネル呼び出し */}
-      <ProxySettingPanel
-        isOpen={showSettings}
-        onClose={() => setShowSettings(false)}
-        // ↓ 必要なstateや変数を渡す
-        proxyLoading={proxyLoading}
-        setProxyLoading={setProxyLoading}
-        proxyTimeout={proxyTimeout}
-        setProxyTimeout={setProxyTimeout}
-        useProxy={useProxy}
-        setUseProxy={setUseProxy}
-      />
     </div>
   );
 }

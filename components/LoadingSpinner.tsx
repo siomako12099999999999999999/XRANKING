@@ -5,14 +5,16 @@ export interface LoadingSpinnerProps {
   color?: string;
 }
 
-const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ 
-  size = "h-8 w-8", 
-  color = "border-blue-500" 
+const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
+  size = 'h-5 w-5',
+  color = 'border-white'
 }) => {
   return (
-    <div className="flex justify-center items-center py-4">
-      <div className={`animate-spin rounded-full ${size} border-t-2 border-b-2 ${color}`}></div>
-    </div>
+    <div
+      className={`animate-spin rounded-full border-2 border-t-transparent ${size} ${color}`}
+      role="status"
+      aria-label="読み込み中"
+    />
   );
 };
 

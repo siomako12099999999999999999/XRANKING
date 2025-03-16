@@ -16,6 +16,9 @@ const mockTweets = Array.from({ length: 20 }, (_, i) => ({
   authorProfileImageUrl: `/sample-avatars/avatar${i % 5 + 1}.png`,
 }));
 
+// この行を追加
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;

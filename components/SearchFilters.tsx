@@ -2,18 +2,19 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { Period, SortType } from '@/app/types';
 
 interface SearchFiltersProps {
-  initialSort: 'likes' | 'latest' | 'trending';
-  initialPeriod: 'day' | 'week' | 'month' | 'all';
-  onFilterChange: (type: string, value: string) => void;
+  initialPeriod: Period;
+  initialSort: SortType;
+  onFilterChange: (period: Period, sort: SortType) => void;
 }
 
-const SearchFilters: React.FC<SearchFiltersProps> = ({
-  initialSort = 'likes',
-  initialPeriod = 'week',
-  onFilterChange
-}) => {
+export default function SearchFilters({ 
+  initialPeriod, 
+  initialSort, 
+  onFilterChange 
+}: SearchFiltersProps) {
   const [sort, setSort] = useState(initialSort);
   const [period, setPeriod] = useState(initialPeriod);
   const router = useRouter();
@@ -27,15 +28,15 @@ const SearchFilters: React.FC<SearchFiltersProps> = ({
   }, [sort, period, router]);
 
   const handleSortChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value as typeof initialSort;
+    const value = e.target.value as SortType;
     setSort(value);
-    onFilterChange('sort', value);
+    onFilterChange(period, value);
   };
 
   const handlePeriodChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value as typeof initialPeriod;
+    const value = e.target.value as Period;
     setPeriod(value);
-    onFilterChange('period', value);
+    onFilterChange(value, sort);
   };
 
   return (
@@ -178,6 +179,4 @@ const SearchFilters: React.FC<SearchFiltersProps> = ({
       </div>
     </div>
   );
-};
-
-export default SearchFilters;
+}

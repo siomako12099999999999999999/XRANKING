@@ -200,8 +200,8 @@ const TwitterCard: React.FC<TwitterCardProps> = ({
         {tweet.videoUrl && (
           <div className="rounded-xl overflow-hidden mb-3">
             <VideoPlayer 
-              src={useProxy ? `/api/video/${tweet.tweetId}` : (videoUrl || tweet.videoUrl)}
-              posterImage={tweet.thumbnailUrl}
+              videoUrl={tweet.videoUrl}  // 直接動画URLを渡す
+              className="w-full"
             />
           </div>
         )}

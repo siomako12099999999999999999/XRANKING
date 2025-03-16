@@ -1,8 +1,8 @@
-import './globals.css';
 import { Inter } from 'next/font/google';
+import './globals.css';
 import type { Metadata, Viewport } from 'next';
 import Header from '@/components/Header';
-import Providers from './providers';
+import { Providers } from './providers'; // 名前付きインポートに変更
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -27,7 +27,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ja" suppressHydrationWarning>
+    <html lang="ja">
       <body className={`${inter.className} bg-gray-50 dark:bg-gray-900`}>
         <Providers>
           <Header />

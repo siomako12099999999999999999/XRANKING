@@ -8,17 +8,14 @@ export interface Tweet {
   tweetId: string;
   content: string | null;
   videoUrl: string | null;
-  likes: number | null;
-  retweets: number | null;
-  views: number | null;
+  likes: number;
+  retweets: number;
+  views: number;
   timestamp: string;
-  authorName?: string | null;
-  authorUsername?: string | null;
-  authorProfileImageUrl?: string | null;
-  originalUrl?: string | null;
-  mediaType?: string;
-  mediaCount?: number;
-  updatedAt?: string;
+  authorName: string | null;
+  authorUsername: string | null;
+  authorProfileImageUrl: string | null;
+  createdAt: string;
 }
 
 /**
@@ -29,21 +26,14 @@ export interface ProcessedTweet {
   tweetId: string;
   content: string | null;
   videoUrl: string | null;
-  processedVideoUrl: string | null;
   likes: number;
   retweets: number;
   views: number;
   timestamp: string;
-  authorName: string;
-  authorUsername: string;
+  authorName: string | null;
+  authorUsername: string | null;
   authorProfileImageUrl: string | null;
-  originalUrl: string;
-  mediaType: string;
-  mediaCount: number;
-  text: string;
   createdAt: string;
-  updatedAt?: string;
-  thumbnail_url?: string; // サムネイル画像のURL（任意）
 }
 
 /**
