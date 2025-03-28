@@ -1,50 +1,44 @@
-// formatNumber関数を更新
-export function formatNumber(num: number | string | bigint | undefined | null): string {
+// 数値のフォーマット（K, Mなどのサフィックス付き）
+export function formatNumber(num: number | undefined | null): string {
   if (num === undefined || num === null) return '0';
   
-  // 文字列や数値以外の型を数値に変換
-  const value = typeof num === 'string' ? parseFloat(num) : Number(num);
-  
-  if (isNaN(value)) return '0';
-  
-  if (value >= 1000000) {
-    return (value / 1000000).toFixed(1) + 'M';
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1) + 'M';
+  } else if (num >= 1000) {
+    return (num / 1000).toFixed(1) + 'K';
   }
-  if (value >= 1000) {
-    return (value / 1000).toFixed(1) + 'K';
-  }
-  return value.toString();
+  return num.toString();
 }
 
-export function formatDate(date: Date): string {
+// 日付のフォーマット
+export function formatDate(dateString: string | undefined | null): string {
+  if (!dateString) return '';
+  
+  const date = new Date(dateString);
   const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  const diff = now.getTime() - date.getTime();
   
-  if (diffInSeconds < 60) {
-    return `${diffInSeconds}秒前`;
+  // 1日以内
+  if (diff < 24 * 60 * 60 * 1000) {
+    const hours = Math.floor(diff / (60 * 60 * 1000));
+    if (hours === 0) {
+      const minutes = Math.floor(diff / (60 * 1000));
+      if (minutes === 0) {
+        return '数秒前';
+      }
+      return `${minutes}分前`;
+    }
+    return `${hours}時間前`;
   }
   
-  const diffInMinutes = Math.floor(diffInSeconds / 60);
-  if (diffInMinutes < 60) {
-    return `${diffInMinutes}分前`;
+  // 7日以内
+  if (diff < 7 * 24 * 60 * 60 * 1000) {
+    const days = Math.floor(diff / (24 * 60 * 60 * 1000));
+    return `${days}日前`;
   }
   
-  const diffInHours = Math.floor(diffInMinutes / 60);
-  if (diffInHours < 24) {
-    return `${diffInHours}時間前`;
-  }
-  
-  const diffInDays = Math.floor(diffInHours / 24);
-  if (diffInDays < 30) {
-    return `${diffInDays}日前`;
-  }
-  
-  const diffInMonths = Math.floor(diffInDays / 30);
-  if (diffInMonths < 12) {
-    return `${diffInMonths}ヶ月前`;
-  }
-  
-  return `${Math.floor(diffInMonths / 12)}年前`;
+  // それ以外
+  return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
 }
 
 /**

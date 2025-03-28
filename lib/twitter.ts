@@ -123,6 +123,43 @@ export function extractVideoUrl(tweetData: any): string | null {
 }
 
 /**
+ * ツイートの本文から動画URLを抽出する
+ * 注: APIから取得できない場合はデータベースから検索する
+ */
+export async function getVideoUrl(tweetId: string): Promise<string | null> {
+  try {
+    // まずAPIから取得を試みる
+    const client = getTwitterClient();
+    const tweetData = await client.getTweet(tweetId);
+    const apiVideoUrl = extractVideoUrl(tweetData);
+    
+    if (apiVideoUrl) {
+      return apiVideoUrl;
+    }
+    
+    // APIから取得できなかった場合、DBから検索
+    const { getDbConnection } = require('../db');
+    const pool = await getDbConnection();
+    const result = await pool.request()
+      .input('tweetId', tweetId)
+      .query(`
+        SELECT [videoUrl]
+        FROM [xranking].[dbo].[Tweet]
+        WHERE [tweetId] = @tweetId
+      `);
+    
+    if (result.recordset[0] && result.recordset[0].videoUrl) {
+      return result.recordset[0].videoUrl;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error getting video URL:', error);
+    return null;
+  }
+}
+
+/**
  * ツイートの公開メトリクスを取得
  */
 export function getTweetMetrics(tweetData: any) {

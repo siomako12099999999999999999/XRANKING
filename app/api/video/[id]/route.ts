@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { getDbConnection } from '../../../../db'; // db.jsからインポート
 
 // Twitterの動画URLにアクセスする際のヘッダー設定
 const fetchHeaders = {
@@ -16,25 +16,35 @@ export async function GET(
 ) {
   try {
     const tweetId = params.id;
+    console.log(`[Video Proxy] Fetching video for tweet ID: ${tweetId}`);
     
-    // データベースから動画URL取得
-    const tweet = await prisma.tweet.findFirst({
-      where: { tweetId: tweetId },
-      select: { videoUrl: true }
-    });
+    // データベースから動画URL取得 (mssqlを使用)
+    const pool = await getDbConnection();
+    const result = await pool.request()
+      .input('tweetId', tweetId)
+      .query(`
+        SELECT [videoUrl]
+        FROM [xranking].[dbo].[Tweet]
+        WHERE [tweetId] = @tweetId
+      `);
     
-    if (!tweet || !tweet.videoUrl) {
+    // 結果が存在するか確認
+    if (!result.recordset[0] || !result.recordset[0].videoUrl) {
+      console.error(`[Video Proxy] No video found for tweet ID: ${tweetId}`);
       return new NextResponse('動画が見つかりません', { status: 404 });
     }
     
+    const videoUrl = result.recordset[0].videoUrl;
+    console.log(`[Video Proxy] Found video URL: ${videoUrl}`);
+    
     // Twitterから動画を取得
-    const response = await fetch(tweet.videoUrl, {
+    console.log(`[Video Proxy] Fetching video from Twitter...`);
+    const response = await fetch(videoUrl, {
       headers: fetchHeaders,
-      // メソッドをHEADから修正
     });
     
     if (!response.ok) {
-      console.error(`Twitter video fetch failed: ${response.status} ${response.statusText}`);
+      console.error(`[Video Proxy] Twitter video fetch failed: ${response.status} ${response.statusText}`);
       return new NextResponse('動画の取得に失敗しました', { status: 502 });
     }
     
@@ -50,6 +60,9 @@ export async function GET(
       headers.set('Content-Type', 'video/mp4');
     }
     
+    // CORSヘッダー追加
+    headers.set('Access-Control-Allow-Origin', '*');
+    
     // キャッシュヘッダー
     headers.set('Cache-Control', 'public, max-age=86400'); // 24時間キャッシュ
     
@@ -61,6 +74,7 @@ export async function GET(
       headers.set('Content-Range', response.headers.get('Content-Range') || '');
     }
     
+    console.log(`[Video Proxy] Streaming video response...`);
     // ストリームレスポンスを返す
     return new NextResponse(response.body, {
       headers,
@@ -68,7 +82,7 @@ export async function GET(
     });
     
   } catch (error) {
-    console.error('Video proxy error:', error);
+    console.error('[Video Proxy] Error:', error);
     return new NextResponse('内部サーバーエラー', { status: 500 });
   }
 }

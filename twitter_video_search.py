@@ -554,27 +554,24 @@ def search_videos(page, query):
     print("✅ 動画検索完了！")
 
 def get_browser_context(p):
-    browser_args = [
-        '--autoplay-policy=no-user-gesture-required',
-        '--disable-web-security',
-        '--enable-features=NetworkService,NetworkServiceInProcess',
-        '--no-sandbox'
-    ]
-    
+    import os
+    from playwright.sync_api import Error
     try:
-        # 新しいブラウザを起動
-        print("🆕 新しいブラウザを起動します...")
-        browser = p.chromium.launch(
-            headless=False,
-            args=browser_args,
-            ignore_default_args=['--mute-audio']
-        )
-        context = browser.new_context(viewport={'width': 1280, 'height': 800})
+        print("🔁 既存のブラウザセッションに接続中...")
+        browser = p.chromium.connect_over_cdp("http://localhost:9222")
+        context = browser.contexts[0] if browser.contexts else browser.new_context()
         return browser, context
-    except Exception as e:
-        print(f"⚠️ ブラウザの起動に失敗しました: {e}")
-        sys.exit(1)
-
+    except Error as e:
+        print(f"⚠️ 既存のブラウザ接続に失敗: {e}. 新しく起動します")
+        context = p.chromium.launch_persistent_context(
+            user_data_dir=".pw-chrome",
+            headless=False,
+            args=["--remote-debugging-port=9222"]
+        )
+        browser = context
+        return browser, context
+    
+    
 def ensure_database_setup():
     """データベースとテーブルが存在することを確認する"""
     try:
@@ -1129,8 +1126,76 @@ def update_all_tweet_data():
         print(f"❌ 処理中にエラーが発生しました: {e}")
     finally:
         conn.close()
+        
+def refresh_tweet_metrics():
+    """保存済みツイートのいいね・リツイート・再生数を更新"""
+    print("🔄 保存済みのツイート指標（いいね・RT・再生数）を更新します")
+    conn = connect_to_db()
+    if not conn:
+        print("❌ データベース接続に失敗しました")
+        return
 
-# スクリプト起動時に引数で更新処理を実行できるようにする
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT id, tweetId, originalUrl FROM Tweet ORDER BY updatedAt DESC")
+        records = cursor.fetchall()
+        print(f"📊 更新対象: {len(records)} 件")
+
+        with sync_playwright() as p:
+            browser, context = get_browser_context(p)
+            page = context.new_page()
+            if not login_to_twitter(page):
+                print("❌ ログイン失敗")
+                return
+
+            updated = 0
+            for record in records:
+                db_id, tweet_id, tweet_url = record
+                if not tweet_url:
+                    continue
+                try:
+                    page.goto(tweet_url, timeout=30000)
+                    page.wait_for_selector('article', timeout=10000)
+                    time.sleep(2)
+
+                    # 各メトリクス取得
+                    def extract(selector_list):
+                        for sel in selector_list:
+                            elem = page.query_selector(sel)
+                            if elem:
+                                return elem.text_content().strip()
+                        return "0"
+
+                    likes = extract(['[data-testid="like"] span span'])
+                    retweets = extract(['[data-testid="retweet"] span span'])
+                    views = extract(['a[href*="/analytics"]', 'span:has-text("閲覧")'])
+
+                    def convert(val):
+                        val = val.replace(',', '').replace('K', '000').replace('M', '000000')
+                        return int(''.join(filter(str.isdigit, val)) or "0")
+
+                    # DB更新
+                    cursor.execute("""
+                        UPDATE Tweet SET 
+                        likes = ?, retweets = ?, views = ?, updatedAt = GETDATE()
+                        WHERE id = ?
+                    """, (convert(likes), convert(retweets), convert(views), db_id))
+                    conn.commit()
+                    updated += 1
+                    print(f"✅ {tweet_url} → ❤️{likes} 🔁{retweets} 👁️{views}")
+                except Exception as e:
+                    print(f"⚠️ {tweet_url} 更新失敗: {e}")
+                    conn.rollback()
+
+            print(f"✅ メトリクス更新完了: {updated}/{len(records)} 件")
+            browser.close()
+    except Exception as e:
+        print(f"❌ 処理中エラー: {e}")
+        conn.rollback()
+    finally:
+        conn.close()
+
+# スクリプト起動時の引数処理に追加
 if __name__ == "__main__":
     import sys
     if len(sys.argv) > 1:
@@ -1138,6 +1203,8 @@ if __name__ == "__main__":
             update_existing_video_urls()
         elif sys.argv[1] == "--update-all":
             update_all_tweet_data()
+        elif sys.argv[1] == "--refresh-metrics":
+            refresh_tweet_metrics()
         else:
             print(f"不明なコマンド: {sys.argv[1]}")
     else:

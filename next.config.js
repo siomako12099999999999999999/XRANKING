@@ -1,25 +1,27 @@
 const withPWA = require('next-pwa')({
   dest: 'public',
-  register: true,
-  skipWaiting: true,
+  disable: process.env.NODE_ENV === 'development', // 開発モードではPWAを無効化
 });
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: [
-      'video.twimg.com',
-      'pbs.twimg.com'
-    ]
+    domains: ['pbs.twimg.com', 'video.twimg.com'],
   },
   async headers() {
     return [
       {
-        source: '/api/video/:id',
+        source: '/:path*',
         headers: [
+          { key: 'Access-Control-Allow-Credentials', value: 'true' },
           { key: 'Access-Control-Allow-Origin', value: '*' },
-          { key: 'Access-Control-Allow-Methods', value: 'GET' },
+          { key: 'Access-Control-Allow-Methods', value: 'GET,OPTIONS,PATCH,DELETE,POST,PUT' },
+          { key: 'Access-Control-Allow-Headers', value: 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version' },
+          {
+            key: 'Content-Security-Policy',
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; media-src 'self' https://*.twimg.com; connect-src 'self' https://*.twimg.com; img-src 'self' https://*.twimg.com data:; style-src 'self' 'unsafe-inline';"
+          }
         ],
       },
     ];
@@ -49,7 +51,11 @@ const nextConfig = {
   // ビルド後のアウトプットを保存する
   distDir: '.next',
   // 静的エクスポートを無効に
-  exportPathMap: null,
+  exportPathMap: async function () {
+    return {
+      '/': { page: '/' },
+    };
+  },
 };
 
 module.exports = withPWA(nextConfig);
