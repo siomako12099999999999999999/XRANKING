@@ -1,24 +1,14 @@
-import { Inter } from 'next/font/google';
 import './globals.css';
-import type { Metadata, Viewport } from 'next';
+import { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import { Providers } from './providers';
 import Header from '@/components/Header';
-import { Providers } from './providers'; // 名前付きインポートに変更
 
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'XRANKING - 人気の動画投稿をチェック',
-  description: 'X / Twitter の人気動画投稿をランキングで表示するサービス',
-  icons: {
-    icon: '/logotrim.ico', // カスタム名のアイコンファイルを指定
-  },
-};
-
-export const viewport: Viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  title: 'XRANKING',
+  description: 'X(Twitter)の人気動画ランキング',
 };
 
 export default function RootLayout({
@@ -30,6 +20,7 @@ export default function RootLayout({
     <html lang="ja">
       <body className={`${inter.className} bg-gray-50 dark:bg-gray-900`}>
         <Providers>
+          {/* ヘッダーを明示的にここに追加 */}
           <Header />
           {children}
         </Providers>

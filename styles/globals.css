@@ -1,0 +1,62 @@
+/* モバイルページでのポインターイベントをサポート */
+.pointer-fix {
+  pointer-events: auto !important;
+  touch-action: auto !important;
+  position: relative !important;
+  z-index: 30000 !important;
+}
+
+/* ヘッダーコンテナに対する特別なスタイル */
+#tiktok-header-container {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 30000 !important; /* 高いz-indexを設定 */
+  pointer-events: auto !important; /* クリックを有効化 */
+  touch-action: auto !important; /* タッチイベントを有効化 */
+}
+
+/* TikTokヘッダー特有のスタイル - 優先度を最大に */
+.tiktok-header {
+  padding-top: 0.25rem !important; /* py-1 に対応 */
+  padding-bottom: 0.25rem !important; /* py-1 に対応 */
+  pointer-events: auto !important;
+  touch-action: auto !important;
+  position: fixed !important; /* 固定位置 */
+  z-index: 30001 !important; /* ヘッダー内の要素をさらに前面に */
+  width: 9% !important; /* 幅を90%に設定 */
+  top: 300 !important; /* ヘッダーの垂直位置を調整 */
+  left: 0% !important; /* 左側の余白を設定 */
+  right: 0% !important; /* 右側の余白を設定 */
+}
+
+/* ヘッダー内の要素 */
+.tiktok-header div,
+.tiktok-header button,
+.tiktok-header a,
+.tiktok-header div[role="button"] {
+  pointer-events: auto !important;
+  touch-action: auto !important;
+  cursor: pointer !important;
+  position: relative !important;
+  z-index: 30002 !important; /* 子要素のz-indexをさらに高く */
+}
+
+/* モバイルタッチのサポート */
+@media (hover: none) and (pointer: coarse) {
+  /* モバイル環境では特に強制的に適用 */
+  #header-container,
+  .tiktok-header,
+  .pointer-fix {
+    pointer-events: auto !important;
+    touch-action: auto !important;
+    z-index: 30000 !important;
+  }
+  
+  /* ヘッダー内の要素はクリック可能に */
+  .tiktok-header * {
+    pointer-events: auto !important;
+    touch-action: auto !important;
+  }
+}

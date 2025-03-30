@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
+import Link from 'next/link';
 import SearchFilters from '@/components/SearchFilters';
 import TweetList from '@/components/TweetList';
 import TweetSkeleton from '@/components/TweetSkeleton';
@@ -10,7 +11,7 @@ import EmptyState from '@/components/EmptyState';
 import LoadMoreButton from '@/components/LoadMoreButton';
 import TweetCard from '@/components/TweetCard';
 import { Period, SortType, LoadingStatus } from '@/app/types';
-import { FaHeart, FaRetweet, FaEye, FaTrophy, FaMedal, FaTwitter } from 'react-icons/fa';
+import { FaHeart, FaRetweet, FaEye, FaTrophy, FaMedal, FaTwitter, FaMobile } from 'react-icons/fa';
 import { formatNumber, formatDate } from '@/lib/utils';
 
 // 期間表示のラベルを取得する関数
@@ -129,6 +130,17 @@ export default function Home() {
             総動画数: {totalTweets}件
           </p>
         )}
+        
+        {/* モバイル表示へのリンクボタン */}
+        <div className="mt-4 flex justify-center">
+          <Link 
+            href="/mobile" // これは正しい// これは正しい
+            className="inline-flex items-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md shadow-sm transition-colors duration-200"
+          >
+            <FaMobile className="mr-2" />
+            モバイル版で表示
+          </Link>
+        </div>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6">

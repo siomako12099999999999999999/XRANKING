@@ -1,13 +1,28 @@
-import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
-import '../globals.css';
-import { Providers } from '../providers';
+import { Metadata, Viewport } from 'next';
 
-const inter = Inter({ subsets: ['latin'] });
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
+  interactiveWidget: 'resizes-content',
+  themeColor: '#000000',
+};
 
 export const metadata: Metadata = {
-  title: 'XRANKING - モバイル版',
-  description: 'X（旧Twitter）の人気動画ランキング - モバイル最適化版',
+  title: 'XRANKING - モバイル',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'XRANKING'
+  },
+  other: {
+    'apple-mobile-web-app-title': 'XRANKING',
+    'apple-mobile-web-app-capable': 'yes',
+    'mobile-web-app-capable': 'yes',
+    'format-detection': 'telephone=no',
+  }
 };
 
 export default function MobileLayout({
@@ -16,12 +31,10 @@ export default function MobileLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ja" suppressHydrationWarning>
-      <body className={`${inter.className} bg-black`} suppressHydrationWarning>
-        <Providers>
-          {children}
-        </Providers>
-      </body>
-    </html>
+    <div className="mobile-layout">
+      <div className="overscroll-none bg-black min-h-screen">
+        {children}
+      </div>
+    </div>
   );
 }

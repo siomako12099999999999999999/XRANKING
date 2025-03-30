@@ -41,7 +41,7 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 # 検索設定
 SEARCH_KEYWORDS = [
-    "JAV",
+    " ",
     
 ]
 # スクロール回数（取得動画数の調整用）

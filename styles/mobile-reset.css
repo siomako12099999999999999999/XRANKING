@@ -1,0 +1,36 @@
+/* モバイル向け追加CSS */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  position: fixed;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: none;
+  background-color: #000;
+  color: #fff;
+}
+
+/* iOSのSafariで余白を消す */
+body {
+  padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0);
+}
+
+/* スクロールバーを消す */
+::-webkit-scrollbar {
+  display: none;
+}
+
+/* 選択を無効化 */
+* {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* iOSのダブルタップによるズームを無効化 */
+.no-double-tap-zoom {
+  touch-action: manipulation;
+}

@@ -24,6 +24,10 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 221.2 83.2% 53.3%;
     --radius: 0.75rem;
+    --z-video: 10;
+    --z-overlay: 20;
+    --z-controls: 50;
+    --z-actionbar: 60;
   }
 }
 
@@ -103,10 +107,112 @@
   }
 }
 
-@layer utilities {
-  .animate-fade-in {
-    animation: fadeIn 0.2s ease-out forwards;
+/* タップフィードバック用のアニメーション */
+.tap-highlight {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.tap-effect {
+  animation: ripple 0.7s ease-out;
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 0.5;
   }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+/* モバイルタップハイライト抑制 */
+.no-tap-highlight {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* コントロールボタン用のスタイル */
+.control-button {
+  position: relative;
+  z-index: var(--z-controls);
+  pointer-events: auto !important;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.control-area {
+  position: relative;
+  z-index: var(--z-actionbar);
+  pointer-events: auto !important;
+}
+
+/* ボタンのアクティブ状態の視覚的フィードバック */
+.control-button:active {
+  transform: scale(0.95);
+  transition: transform 0.1s;
+}
+
+/* ミュートボタン領域を拡大して確実にクリック可能にする */
+.absolute.right-3.bottom-24 button {
+  transition: transform 0.1s;
+  z-index: 999 !important; /* 最優先のz-index */
+  pointer-events: auto !important;
+  position: relative; /* stacking contextを作成 */
+  touch-action: manipulation; /* タッチイベントの最適化 */
+}
+
+/* ミュートボタン用の専用クラス */
+.mute-button {
+  isolation: isolate;
+  position: relative !important;
+  z-index: 1000 !important;
+  pointer-events: auto !important;
+  touch-action: manipulation !important;
+  cursor: pointer !important;
+  transform: translateZ(0); transform: translateZ(0);
+  will-change: transform;  will-change: transform;
+  -webkit-tap-highlight-color: transparent !important;olor: transparent !important;
+}
+
+/* ボタンのタップ領域を拡大 */* ボタンのタップ領域を拡大 */
+.mute-button::before {.mute-button::before {
+  content: '';
+  position: absolute;;
+  top: -10px;
+  right: -10px;ight: -10px;
+  bottom: -10px;bottom: -10px;
+  left: -10px;
+  z-index: -1;
+}
+
+/* アクションバーとボタンの優先度を上げる */上げる */
+.z-60 {
+  z-index: 60 !important;
+}
+
+@layer utilities {
+  .animate-fade-in {animate-fade-in {
+    animation: fadeIn 0.2s ease-out forwards;   animation: fadeIn 0.2s ease-out forwards;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+}  }    display: none;  /* Chrome, Safari, Opera 用 */  .scrollbar-hide::-webkit-scrollbar {  }    scrollbar-width: none;  /* Firefox 用 */    -ms-overflow-style: none;  /* Internet Explorer と Edge 用 */  .scrollbar-hide {    }    animation: pulse 1.5s ease-in-out infinite;  .animate-pulse {    }  }
   
   .animate-pulse {
     animation: pulse 1.5s ease-in-out infinite;

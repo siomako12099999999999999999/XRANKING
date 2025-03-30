@@ -7,7 +7,13 @@ const withPWA = require('next-pwa')({
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: ['pbs.twimg.com', 'video.twimg.com'],
+    domains: ['pbs.twimg.com', 'video.twimg.com', 'api.twitter.com', 'abs.twimg.com', 'cors-anywhere.herokuapp.com'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**.twimg.com',
+      },
+    ],
   },
   async headers() {
     return [
@@ -20,9 +26,34 @@ const nextConfig = {
           { key: 'Access-Control-Allow-Headers', value: 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version' },
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; media-src 'self' https://*.twimg.com; connect-src 'self' https://*.twimg.com; img-src 'self' https://*.twimg.com data:; style-src 'self' 'unsafe-inline';"
-          }
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; media-src 'self' blob: https://*.twimg.com https://* data:; connect-src 'self' https://*.twimg.com https://*; img-src 'self' https://*.twimg.com data:; style-src 'self' 'unsafe-inline'; frame-ancestors 'self';"
+          },
+          { key: 'Referer', value: 'https://twitter.com/' } // リファラーを追加
         ],
+      },
+    ];
+  },
+  async redirects() {
+    return [
+      {
+        source: '/mobile-safari',
+        destination: '/mobile',
+        permanent: true,
+      },
+      {
+        source: '/mobile-safari/:path*',
+        destination: '/mobile/:path*',
+        permanent: true,
+      },
+      {
+        source: '/mobile-view',
+        destination: '/mobile',
+        permanent: true,
+      },
+      {
+        source: '/mobile-view/:path*',
+        destination: '/mobile/:path*',
+        permanent: true,
       },
     ];
   },
@@ -43,6 +74,10 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '2mb',
     },
+    // メモリ使用量最適化
+    optimizeServerReact: true,
+    optimizeCss: true,
+    scrollRestoration: true,
   },
   // アプリケーション全体を動的に
   env: {
@@ -56,6 +91,10 @@ const nextConfig = {
       '/': { page: '/' },
     };
   },
+  // 開発ツールを無効化
+  devIndicators: false,
+  // キャッシュ設定を追加
+  generateEtags: true,
 };
 
 module.exports = withPWA(nextConfig);
