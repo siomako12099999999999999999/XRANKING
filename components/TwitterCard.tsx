@@ -1,3 +1,20 @@
+/**
+ * 機能概要：
+ * Twitterカードコンポーネント
+ * 
+ * 主な機能：
+ * 1. ツイート情報の表示
+ * 2. 埋め込み動画の再生制御
+ * 3. インタラクティブな操作
+ * 4. エンゲージメント情報の表示
+ * 
+ * 用途：
+ * - ツイートデータの視覚的表現
+ * - 動画コンテンツの再生
+ * - 原本ツイートへのリンク提供
+ * - ユーザー情報の表示
+ */
+
 import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { formatDistanceToNow } from 'date-fns';

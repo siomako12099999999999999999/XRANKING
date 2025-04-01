@@ -1,3 +1,20 @@
+/**
+ * 機能概要：
+ * ツイートデータの処理ユーティリティ
+ * 
+ * 主な機能：
+ * 1. Twitterレスポンスの処理
+ * 2. データの正規化
+ * 3. デフォルト値の設定
+ * 4. URLの生成
+ * 
+ * 用途：
+ * - データの標準化
+ * - フロントエンド表示の最適化
+ * - エラー値の処理
+ * - リンクの生成
+ */
+
 import type { Tweet, ProcessedTweet } from '../types';
 
 export function processTwitterResponse(tweet: Tweet): ProcessedTweet {
