@@ -1040,53 +1040,9 @@ async def main():
             await autosave_data()
 
 if __name__ == "__main__":
-if __name__ == "__main__":
     # Python 3.8以上でWindowsの場合、asyncioのイベントループポリシーを設定
     # WindowsSelectorEventLoopPolicy は非同期 Playwright で問題が発生する場合があるため注意
     # if sys.version_info >= (3, 8) and sys.platform == "win32":
     #     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
     asyncio.run(main())
-<environment_details>
-# VSCode Visible Files
-(No visible files)
-
-# VSCode Open Tabs
-(No open tabs)
-
-# Current Time
-2025/4/3 午後5:29:33 (Asia/Tokyo, UTC+9:00)
-
-# Current Mode
-ACT MODE
-</environment_details>
-
-</final_file_content>
-
-IMPORTANT: For any future changes to this file, use the final_file_content shown above as your reference. This content reflects the current state of the file, including any auto-formatting (e.g., if you used single quotes but the formatter converted them to double quotes). Always base your SEARCH/REPLACE operations on this final version to ensure accuracy.
-
-
-
-New problems detected after saving the file:
-twitter_video_search.py
-- [Pylance Error] Line 1044: 式が必要です
-- [Pylance Error] Line 1046: "(" が閉じられませんでした
-- [Pylance Error] Line 1049: "(" が閉じられませんでした
-- [Pylance Error] Line 1052: ステートメントは改行またはセミコロンで区切る必要があります
-- [Pylance Error] Line 1052: ステートメントは改行またはセミコロンで区切る必要があります
-- [Pylance Error] Line 1052: 式が必要です
-- [Pylance Error] Line 1055: ステートメントは改行またはセミコロンで区切る必要があります
-- [Pylance Error] Line 1056: 式が必要です<environment_details>
-# VSCode Visible Files
-twitter_video_search.py
-
-# VSCode Open Tabs
-lib/prisma.ts
-twitter_video_search.py
-
-# Current Time
-2025/4/3 午後5:29:33 (Asia/Tokyo, UTC+9:00)
-
-# Current Mode
-ACT MODE
-</environment_details>
