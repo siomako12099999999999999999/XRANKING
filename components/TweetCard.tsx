@@ -1,3 +1,20 @@
+/**
+ * 機能概要：
+ * ツイートカードコンポーネント
+ * 
+ * 主な機能：
+ * 1. ツイート情報の表示
+ * 2. ビデオ再生の制御
+ * 3. エンゲージメント情報の表示
+ * 4. ランキング表示
+ * 
+ * 用途：
+ * - ツイートの視覚的表現
+ * - ランキング情報の表示
+ * - ユーザーインタラクション
+ * - 外部リンクの提供
+ */
+
 import React, { useState, useRef } from 'react';
 import { FaHeart, FaRetweet, FaEye, FaTwitter, FaExternalLinkAlt, FaTrophy, FaMedal } from 'react-icons/fa';
 import { Tweet } from '@/app/types';

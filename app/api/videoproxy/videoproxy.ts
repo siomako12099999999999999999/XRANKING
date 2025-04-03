@@ -1,3 +1,20 @@
+/**
+ * 機能概要：
+ * シンプルなビデオプロキシ機能モジュール
+ * 
+ * 主な機能：
+ * 1. 指定URLの動画コンテンツをプロキシ
+ * 2. 適切なヘッダー情報の設定
+ * 3. エラーハンドリング
+ * 4. キャッシュヘッダーの設定
+ * 
+ * 用途：
+ * - 動画アクセスのプロキシ機能提供
+ * - Twitter動画の安定視聴
+ * - CORS問題の回避
+ * - route.tsから利用される実装
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {

@@ -1,3 +1,18 @@
+@REM 機能概要：
+@REM Gitリポジトリの自動コミットとプッシュを実行するバッチファイル
+@REM 
+@REM 主な機能：
+@REM 1. 変更ファイルの自動検出
+@REM 2. コミットメッセージの生成
+@REM 3. リモートリポジトリへのプッシュ
+@REM 4. エラーハンドリングとログ出力
+@REM 
+@REM 用途：
+@REM - バージョン管理の自動化
+@REM - 変更履歴の追跡
+@REM - チーム開発の同期
+@REM - デプロイメントの準備
+
 @echo off
 chcp 65001 > nul
 setlocal enabledelayedexpansion

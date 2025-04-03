@@ -1,3 +1,20 @@
+/**
+ * 機能概要：
+ * ツイート動画プロキシAPIエンドポイント
+ * 
+ * 主な機能：
+ * 1. ツイートIDに基づく動画URLの取得
+ * 2. Twitter動画コンテンツのプロキシ
+ * 3. キャッシュヘッダーの設定
+ * 4. 範囲リクエスト（レンジリクエスト）のサポート
+ * 
+ * 用途：
+ * - Twitter動画の安定視聴の提供
+ * - CORS制限の回避
+ * - トラフィック最適化
+ * - 動画再生のパフォーマンス向上
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getDbConnection } from '../../../../db'; // db.jsからインポート
 

@@ -1,3 +1,20 @@
+/**
+ * 機能概要：
+ * Next.jsアプリケーションの設定ファイル
+ * 
+ * 主な機能：
+ * 1. PWA（Progressive Web App）の設定
+ * 2. 画像ドメインの設定
+ * 3. セキュリティヘッダーの設定
+ * 4. リダイレクトルールの設定
+ * 
+ * 用途：
+ * - アプリケーションの基本設定
+ * - セキュリティ設定の管理
+ * - パフォーマンス最適化
+ * - 外部リソースの統合
+ */
+
 const withPWA = require('next-pwa')({
   dest: 'public',
   disable: process.env.NODE_ENV === 'development', // 開発モードではPWAを無効化
