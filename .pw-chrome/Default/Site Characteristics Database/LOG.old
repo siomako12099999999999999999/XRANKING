@@ -1,3 +1,5 @@
-2025/03/30-10:18:57.479 47a0 Reusing MANIFEST C:\Users\sioma\XRANKING\.pw-chrome\Default\Site Characteristics Database/MANIFEST-000001
-2025/03/30-10:18:57.499 47a0 Recovering log #3
-2025/03/30-10:18:57.500 47a0 Reusing old log C:\Users\sioma\XRANKING\.pw-chrome\Default\Site Characteristics Database/000003.log 
+2025/03/31-19:46:37.943 653c Log #3: 8 ops saved to Table #4 OK
+2025/03/31-19:46:37.951 653c Archiving C:\Users\sioma\XRANKING\.pw-chrome\Default\Site Characteristics Database/000003.log: OK
+2025/03/31-19:46:37.952 653c Table #4: 8 entries OK
+2025/03/31-19:46:37.953 653c Archiving C:\Users\sioma\XRANKING\.pw-chrome\Default\Site Characteristics Database/MANIFEST-000001: OK
+2025/03/31-19:46:37.958 653c **** Repaired leveldb C:\Users\sioma\XRANKING\.pw-chrome\Default\Site Characteristics Database; recovered 1 files; 299 bytes. Some data may have been lost. ****

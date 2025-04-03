@@ -1,0 +1,81 @@
+# Tweetテーブル修正作業のまとめ
+
+## 実施した修正
+
+1. テーブル構造の分析
+   - 既存のテーブル構造を確認
+   - 不足しているカラムを特定
+
+2. テーブル再作成
+   - recreate_table.sqlを作成し、必要なカラムを追加
+   - テーブルの再作成を実行
+
+3. データ挿入テスト
+   - 英数字のみのテストデータでの動作確認（simple_test.sql）
+   - 日本語を含むデータでの挿入テスト（文字コードの問題があったため一部制限あり）
+
+## 修正されたテーブル構造
+
+```sql
+CREATE TABLE [xranking].[dbo].[Tweet] (
+    [id] INT IDENTITY(1,1) PRIMARY KEY,  -- 自動採番INT型
+    [tweetId] NVARCHAR(255) NOT NULL UNIQUE,
+    [videoUrl] NVARCHAR(2048) NULL,
+    [originalUrl] NVARCHAR(2048) NULL,
+    [content] NVARCHAR(MAX) NULL,
+    [likes] INT NOT NULL DEFAULT 0,
+    [retweets] INT NOT NULL DEFAULT 0,
+    [views] INT NOT NULL DEFAULT 0,
+    [timestamp] DATETIME2 NOT NULL DEFAULT GETDATE(),
+    [authorId] NVARCHAR(255) NULL,
+    [authorName] NVARCHAR(255) NULL,
+    [authorUsername] NVARCHAR(255) NULL,
+    [authorProfileImageUrl] NVARCHAR(2048) NULL,
+    [thumbnailUrl] NVARCHAR(2048) NULL,
+    [createdAt] DATETIME2 NOT NULL DEFAULT GETDATE(),
+    [updatedAt] DATETIME2 NOT NULL DEFAULT GETDATE()
+);
+```
+
+## データ登録サンプル
+
+以下のクエリでデータ登録が可能になりました：
+
+```sql
+INSERT INTO [xranking].[dbo].[Tweet] (
+    [tweetId],
+    [videoUrl],
+    [originalUrl],
+    [content],
+    [likes],
+    [retweets],
+    [views],
+    [timestamp],
+    [authorId],
+    [authorName],
+    [authorUsername],
+    [authorProfileImageUrl],
+    [thumbnailUrl]
+) VALUES (
+    '1234567890',
+    'https://video.example.com/12345',
+    'https://example.com/status/12345',
+    'テストツイート内容',
+    100,
+    50,
+    1000,
+    GETDATE(),
+    '98765432',
+    'テストユーザー',
+    'test_user',
+    'https://example.com/profile.jpg',
+    'https://example.com/thumbnail.jpg'
+);
+```
+
+## 注意点
+
+1. 日本語データを扱う場合は、Unicode文字列プレフィックス「N」を使用することを推奨
+   例：`N'これはテストです'`
+
+2. 改行を含むSQLファイルを使用する場合、文字コードの問題が発生する可能性があるため、テキストエディタでUTF-8形式で保存すること 

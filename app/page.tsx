@@ -10,7 +10,7 @@ import ErrorMessage from '@/components/ErrorMessage';
 import EmptyState from '@/components/EmptyState';
 import LoadMoreButton from '@/components/LoadMoreButton';
 import TweetCard from '@/components/TweetCard';
-import { Period, SortType, LoadingStatus } from '@/app/types';
+import { Period, SortType, LoadingStatus, Tweet } from '@/app/types';
 import { FaHeart, FaRetweet, FaEye, FaTrophy, FaMedal, FaTwitter, FaMobile } from 'react-icons/fa';
 import { formatNumber, formatDate } from '@/lib/utils';
 
@@ -30,6 +30,7 @@ const getSortLabel = (sort: SortType): string => {
     case 'likes': return 'いいね数';
     case 'trending': return 'トレンド';
     case 'latest': return '新着';
+    case 'combined': return '総合ランキング';
     default: return 'いいね数';
   }
 };
@@ -49,7 +50,7 @@ const getOriginalUrl = (tweet: Tweet) => {
 export default function Home() {
   // 状態変数を定義
   const [period, setPeriod] = useState<Period>('month');
-  const [sort, setSort] = useState<SortType>('likes');
+  const [sort, setSort] = useState<SortType>('combined');
   const [initialLimit, setInitialLimit] = useState(20);
   
   // 画面サイズに応じた表示件数の調整
@@ -81,7 +82,7 @@ export default function Home() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage
-  } = useInfiniteQuery({
+  } = useInfiniteQuery<any, Error, any>({
     queryKey: ['tweets', period, sort, initialLimit],
     queryFn: async ({ pageParam = 1 }) => {
       const response = await fetch(`/api/tweets?period=${period}&sort=${sort}&page=${pageParam}&limit=${initialLimit}`);
@@ -89,9 +90,19 @@ export default function Home() {
         throw new Error('サーバーエラーが発生しました');
       }
       const data = await response.json();
+      
+      // 総合ランキングの計算
+      if (sort === 'combined') {
+        data.tweets.sort((a: Tweet, b: Tweet) => {
+          const aTotal = a.likes + a.retweets + (a.views || 0);
+          const bTotal = b.likes + b.retweets + (b.views || 0);
+          return bTotal - aTotal;
+        });
+      }
+      
       return data;
     },
-    getNextPageParam: (lastPage, allPages) => {
+    getNextPageParam: (lastPage: any, allPages: any) => {
       if (!lastPage.meta) return undefined;
       return lastPage.meta.page < lastPage.meta.pageCount ? lastPage.meta.page + 1 : undefined;
     },

@@ -1,11 +1,17 @@
-// Prisma関連のコードを削除またはコメントアウト
-// import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 
-// declare global {
-//   var prisma: PrismaClient | undefined;
-// }
+declare global {
+  // allow global `var` declarations
+  // eslint-disable-next-line no-var
+  var prisma: PrismaClient | undefined;
+}
 
-// const prisma = global.prisma || new PrismaClient();
-// if (process.env.NODE_ENV !== 'production') global.prisma = prisma;
+const prisma =
+  global.prisma ||
+  new PrismaClient({
+    // log: ['query'], // クエリログが必要な場合はコメント解除
+  });
 
-// export default prisma;
+if (process.env.NODE_ENV !== 'production') global.prisma = prisma;
+
+export default prisma;

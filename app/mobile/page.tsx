@@ -9,7 +9,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useInfiniteQuery, InfiniteQueryObserverResult } from '@tanstack/react-query';
 import Link from 'next/link';
-import { Period, SortType } from '@/app/types';
+import { Period } from '@/app/types';
 // 必要に応じてTweetタイプを拡張
 type ExtendedTweet = {
   id: string;
@@ -32,7 +32,10 @@ import { BsChevronUp, BsChevronDown, BsFullscreen } from 'react-icons/bs';
 import { RiArrowLeftLine } from 'react-icons/ri';
 
 // status型の定義を修正 - React Query v4の正確な型に合わせる
-type QueryStatus = 'idle' | 'loading' | 'error' | 'success';
+// 'loading'と'idle'を追加
+export type QueryStatus = 'idle' | 'loading' | 'error' | 'success' | 'pending';
+
+export type SortType = 'total' | 'likes' | 'trending' | 'latest'; // 'total'を追加
 
 /**
  * ミュートボタンの固定コンポーネント。
@@ -215,7 +218,7 @@ const MemoizedVideo = React.memo(({
 export default function MobilePage() {
   // 状態変数
   const [period, setPeriod] = useState<Period>('day');
-  const [sort, setSort] = useState<SortType>('likes');
+  const [sort, setSort] = useState<SortType>('total');
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPeriodOpen, setIsPeriodOpen] = useState(false);
   const [isSortOpen, setIsSortOpen] = useState(false);
@@ -233,7 +236,7 @@ export default function MobilePage() {
 
   // InView hook
   const [loadMoreRef, inView] = useInView({
-    threshold: 0.5,
+    threshold: 0.1,
     triggerOnce: false,
   });
 
@@ -450,6 +453,7 @@ export default function MobilePage() {
         video.play().then(() => {
           console.log(`[Auto] Video ${activeIndex}: 再生成功`);
           // 成功時に状態を更新する必要がある場合はここで
+          setIsPlaying(prev => ({ ...prev, [tweetId]: true }));
         }).catch((e) => {
           console.warn(`[Auto] Video ${activeIndex} 再生失敗:`, e);
           if (!isMuted && !cleanup) {
@@ -796,7 +800,7 @@ export default function MobilePage() {
     const handleSortClick = (e: React.MouseEvent) => {
       e.stopPropagation();
       e.preventDefault();
-      const sorts: SortType[] = ['likes', 'trending', 'latest'];
+      const sorts: SortType[] = ['total', 'likes', 'trending', 'latest'];
       const currentIndex = sorts.indexOf(sort);
       setSort(sorts[(currentIndex + 1) % sorts.length]);
     };
@@ -834,7 +838,8 @@ export default function MobilePage() {
             style={{ pointerEvents: 'auto' }}
           >
             <span className="text-white text-xs font-medium mr-1">
-              {sort === 'likes' ? '人気' : 
+              {sort === 'total' ? '総合' : 
+               sort === 'likes' ? '人気' : 
                sort === 'trending' ? 'トレンド' : '新着'}
             </span>
             <BsChevronDown size={12} color="white" />
