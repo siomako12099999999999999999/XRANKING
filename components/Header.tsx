@@ -21,7 +21,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import ThemeToggle from './ThemeToggle';
-import { FaBars, FaTimes, FaTwitter, FaMobile } from 'react-icons/fa'; // FaMobileを追加
+import { FaBars, FaTimes, FaTwitter, FaMobile, FaDownload } from 'react-icons/fa'; // FaDownload を追加
 import { BiTrendingUp } from 'react-icons/bi';
 import { BsPhone } from 'react-icons/bs';
 import SearchFilters from './SearchFilters'; // SearchFilters コンポーネントをインポーネート
@@ -50,13 +50,10 @@ interface NavItem {
   name: string;
 }
 
-// 型定義を追加
-interface HeaderProps {
-  children: React.ReactNode;  // children の型を明示的に定義
-}
+// HeaderProps は children を必要としないため削除
 
-// 型を適用
-const Header = ({ children }: HeaderProps) => {
+// 型を適用 (children を削除)
+const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
@@ -117,6 +114,16 @@ const Header = ({ children }: HeaderProps) => {
 
           {/* Desktop Navigation - 削除してシンプルな右側のアイコン群のみに */}
           <div className="flex items-center space-x-4">
+            {/* Download Link */}
+            <Link
+              href="/download"
+              className="text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 flex items-center gap-1"
+              aria-label="動画ダウンロード"
+              title="動画ダウンロード" // Add title for tooltip
+            >
+              <FaDownload className="h-5 w-5" />
+            </Link>
+
             <button
               onClick={() => goToMobileView(null)}
               className="text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 flex items-center gap-1"
@@ -171,17 +178,7 @@ const Header = ({ children }: HeaderProps) => {
           </nav>
         </div>
       )}
-
-      {/* メインコンテンツ */}
-      <div className="lg:w-3/4">
-        {isLoading ? (
-          <div className="py-10 flex justify-center">
-            <LoadingSpinner size="h-12 w-12" />
-          </div>
-        ) : (
-          <>{children}</>
-        )}
-      </div>
+      {/* Header内にメインコンテンツ(children)は不要なため削除 */}
     </header>
   );
 };

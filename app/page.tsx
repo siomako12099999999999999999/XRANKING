@@ -18,9 +18,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, InfiniteData } from '@tanstack/react-query'; // Import InfiniteData
 import Link from 'next/link';
-import SearchFilters from '@/components/SearchFilters';
+// import SearchFilters from '@/components/SearchFilters'; // SearchFilters を削除
 import TweetList from '@/components/TweetList';
 import TweetSkeleton from '@/components/TweetSkeleton';
 import ErrorMessage from '@/components/ErrorMessage';
@@ -28,8 +28,19 @@ import EmptyState from '@/components/EmptyState';
 import LoadMoreButton from '@/components/LoadMoreButton';
 import TweetCard from '@/components/TweetCard';
 import { Period, SortType, LoadingStatus, Tweet } from '@/app/types';
-import { FaHeart, FaRetweet, FaEye, FaTrophy, FaMedal, FaTwitter, FaMobile } from 'react-icons/fa';
+import { FaHeart, FaRetweet, FaEye, FaTrophy, FaMedal, FaTwitter, FaMobile, FaDownload } from 'react-icons/fa';
 import { formatNumber, formatDate } from '@/lib/utils';
+
+// APIレスポンスの型定義
+type ApiTweetsResponse = {
+  tweets: Tweet[];
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    pageCount: number;
+  };
+};
 
 // 期間表示のラベルを取得する関数
 const getPeriodLabel = (period: Period): string => {
@@ -69,6 +80,21 @@ export default function Home() {
   const [period, setPeriod] = useState<Period>('month');
   const [sort, setSort] = useState<SortType>('combined');
   const [initialLimit, setInitialLimit] = useState(20);
+
+  // 期間とソート順のオプション
+  const periodOptions: { value: Period; label: string }[] = [
+    { value: 'day', label: '24時間' },
+    { value: 'week', label: '週間' },
+    { value: 'month', label: '月間' },
+    { value: 'all', label: '全期間' },
+  ];
+
+  const sortOptions: { value: SortType; label: string }[] = [
+    { value: 'likes', label: 'いいね数' },
+    { value: 'trending', label: 'トレンド' },
+    { value: 'latest', label: '新着' },
+    { value: 'combined', label: '総合ランキング' },
+  ];
   
   // 画面サイズに応じた表示件数の調整
   useEffect(() => {
@@ -99,45 +125,46 @@ export default function Home() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage
-  } = useInfiniteQuery<any, Error, any>({
+  // Correctly type useInfiniteQuery: TQueryFnData, TError, TData, TQueryKey, TPageParam
+  } = useInfiniteQuery<ApiTweetsResponse, Error, InfiniteData<ApiTweetsResponse>, (string | number)[], number>({ 
     queryKey: ['tweets', period, sort, initialLimit],
-    queryFn: async ({ pageParam = 1 }) => {
+    queryFn: async ({ pageParam = 1 }: { pageParam?: number }) => { // pageParam type is correct here
       const response = await fetch(`/api/tweets?period=${period}&sort=${sort}&page=${pageParam}&limit=${initialLimit}`);
       if (!response.ok) {
         throw new Error('サーバーエラーが発生しました');
       }
-      const data = await response.json();
+      const responseData = await response.json(); // Renamed to avoid conflict
       
-      // 総合ランキングの計算
-      if (sort === 'combined') {
-        data.tweets.sort((a: Tweet, b: Tweet) => {
-          const aTotal = a.likes + a.retweets + (a.views || 0);
-          const bTotal = b.likes + b.retweets + (b.views || 0);
-          return bTotal - aTotal;
-        });
-      }
+      // API側でソートされるため、クライアントサイドでの再ソートは不要
+      // if (sort === 'combined') {
+      //   responseData.tweets.sort((a: Tweet, b: Tweet) => {
+      //     const aTotal = a.likes + a.retweets + (a.views || 0);
+      //     const bTotal = b.likes + b.retweets + (b.views || 0);
+      //     return bTotal - aTotal;
+      //   });
+      // }
       
-      return data;
+      return responseData; // This returns ApiTweetsResponse
     },
-    getNextPageParam: (lastPage: any, allPages: any) => {
+    getNextPageParam: (lastPage: ApiTweetsResponse) => { // lastPage is ApiTweetsResponse
       if (!lastPage.meta) return undefined;
       return lastPage.meta.page < lastPage.meta.pageCount ? lastPage.meta.page + 1 : undefined;
     },
-    initialPageParam: 1,
+    initialPageParam: 1, // initialPageParam is number
     enabled: true,
   });
 
   // 全てのツイートをフラット化
-  const tweets = data?.pages.flatMap(page => page.tweets) || [];
+  const tweets: Tweet[] = data?.pages.flatMap(page => page.tweets) || []; // Add type annotation for tweets
   
   // ツイートの総数
   const totalTweets = data?.pages[0]?.meta?.total || 0;
 
-  // フィルター変更ハンドラー
-  const handleFilterChange = (newPeriod: Period, newSort: SortType) => {
-    setPeriod(newPeriod);
-    setSort(newSort);
-  };
+  // // フィルター変更ハンドラー (ボタン形式に変更するため不要に)
+  // const handleFilterChange = (newPeriod: Period, newSort: SortType) => {
+  //   setPeriod(newPeriod);
+  //   setSort(newSort);
+  // };
 
   // もっと読み込むハンドラー
   const handleLoadMore = () => {
@@ -159,42 +186,80 @@ export default function Home() {
           </p>
         )}
         
-        {/* モバイル表示へのリンクボタン */}
-        <div className="mt-4 flex justify-center">
-          <Link 
-            href="/mobile" // これは正しい// これは正しい
+        {/* モバイル表示と動画保存へのリンクボタン */}
+        <div className="mt-4 flex justify-center gap-4"> {/* gap-4 を追加してボタン間にスペースを設ける */}
+          <Link
+            href="/mobile" // これは正しい
             className="inline-flex items-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md shadow-sm transition-colors duration-200"
           >
             <FaMobile className="mr-2" />
             モバイル版で表示
           </Link>
+          {/* 動画保存ボタンを追加 */}
+          <Link
+            href="/download"
+            className="inline-flex items-center px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md shadow-sm transition-colors duration-200" // 色を緑系に変更
+          >
+            <FaDownload className="mr-2" /> {/* ダウンロードアイコンを追加 */}
+            動画保存
+          </Link>
         </div>
-      </div>
+        {/* ここにあった閉じタグ </div> を削除 */}
 
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* サイドバー */}
-        <div className="lg:w-1/4">
-          <div className="sticky top-24 bg-white dark:bg-gray-800 rounded-xl shadow-sm p-5">
-            <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">絞り込み検索</h2>
-            <SearchFilters 
-              initialPeriod={period}
-              initialSort={sort}
-              onFilterChange={handleFilterChange}
-            />
-            
-            {/* 表示中の件数情報 */}
-            {status === 'success' && (
-              <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-                <p className="text-sm text-gray-600 dark:text-gray-300">
-                  <span className="font-semibold">{tweets.length}</span> / <span>{totalTweets}</span> 件表示中
-                </p>
+        {/* 期間・ソート順変更ボタン (text-center div の外、container div の中に配置) */}
+        <div className="my-6 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg shadow">
+          <div className="flex flex-col sm:flex-row gap-4">
+            {/* 期間ボタン */}
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">期間</label>
+              <div className="flex flex-wrap gap-2">
+                {periodOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => setPeriod(option.value)}
+                    className={`px-3 py-1 rounded-md text-sm font-medium transition-colors duration-150 ${
+                      period === option.value
+                        ? 'bg-blue-600 text-white shadow-md'
+                        : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
               </div>
-            )}
+            </div>
+            {/* ソート順ボタン */}
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">ソート順</label>
+              <div className="flex flex-wrap gap-2">
+                {sortOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => setSort(option.value)}
+                    className={`px-3 py-1 rounded-md text-sm font-medium transition-colors duration-150 ${
+                      sort === option.value
+                        ? 'bg-blue-600 text-white shadow-md'
+                        : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
+      {/* text-center div の閉じタグを正しい位置に移動 */}
+      </div> 
+
+      {/* <div className="mb-6"> ... </div> */} {/* 元のフィルター位置は削除 */}
+
+      {/* サイドバーとメインコンテンツを囲む div を復活させ、サイドバーのみ削除 */}
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* サイドバー (<div className="lg:w-1/4">...</div>) を完全に削除 */}
         
-        {/* メインコンテンツ */}
-        <div className="lg:w-3/4">
+        {/* メインコンテンツ (幅を full に変更) */}
+        <div className="lg:w-full"> {/* lg:w-3/4 から lg:w-full に変更 */}
           {status === 'pending' || status === 'loading' ? (
             <TweetSkeleton count={initialLimit} />
           ) : status === 'error' ? (
@@ -207,18 +272,22 @@ export default function Home() {
                 {/* 上位3位は特別扱い */}
                 {tweets.slice(0, 3).length > 0 && (
                   <div className="md:col-span-2 xl:col-span-3 mb-8">
-                    <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white border-b pb-2 border-gray-200 dark:border-gray-700">
-                      🏆 ランキングTOP3
-                    </h2>
+                    {/* ランキングTOP3の見出し (latest以外で表示) */}
+                    {sort !== 'latest' && (
+                      <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white border-b pb-2 border-gray-200 dark:border-gray-700">
+                        🏆 ランキングTOP3
+                      </h2>
+                    )}
                     
                     {/* 1位は最も大きく表示 */}
                     {tweets.length > 0 && (
                       <div className="mb-8">
                         <div className="bg-gradient-to-r from-yellow-100 to-yellow-50 dark:from-yellow-900/30 dark:to-gray-800 p-4 rounded-xl">
                           <h3 className="text-xl font-bold mb-4 text-yellow-600 dark:text-yellow-400 flex items-center">
-                            <FaTrophy className="mr-2 text-yellow-500" /> 第1位
+                            <FaTrophy className="mr-2 text-yellow-500" /> {sort !== 'latest' ? '第1位' : 1} {/* latest以外は「第1位」、latestは「1」 */}
                           </h3>
                           <div className="flex flex-col md:flex-row gap-6">
+                            {/* 動画表示部分 */}
                             <div className="md:w-2/3 relative aspect-video rounded-lg overflow-hidden shadow-lg">
                               <video
                                 src={tweets[0].videoUrl}
@@ -227,14 +296,13 @@ export default function Home() {
                                 poster={tweets[0].thumbnailUrl || undefined}
                                 preload="metadata"
                               />
-                              
-                              {/* Twitter遷移ボタンをビデオの右上に表示 */}
+                              {/* Twitter遷移ボタン */}
                               {tweets[0].originalUrl && (
-                                <a 
-                                  href={tweets[0].originalUrl} 
-                                  target="_blank" 
+                                <a
+                                  href={tweets[0].originalUrl}
+                                  target="_blank"
                                   rel="noopener noreferrer"
-                                  className="absolute top-3 right-3 bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-full shadow-md transition-colors duration-200 flex items-center justify-center"
+                                  className="absolute top-3 right-3 bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-full shadow-md transition-colors duration-200 flex items-center justify-center z-10"
                                   title="元のツイートを見る"
                                 >
                                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -243,6 +311,7 @@ export default function Home() {
                                 </a>
                               )}
                             </div>
+                            {/* 情報表示部分 */}
                             <div className="md:w-1/3 flex flex-col justify-between">
                               <div>
                                 <div className="flex items-center mb-4">
@@ -281,11 +350,10 @@ export default function Home() {
                                     </div>
                                   )}
                                 </div>
-                                
-                                {/* 元ツイートリンクを追加 */}
+                                {/* 元ツイートリンク */}
                                 {getOriginalUrl(tweets[0]) && (
                                   <a 
-                                    href={getOriginalUrl(tweets[0])} 
+                                    href={getOriginalUrl(tweets[0]) || undefined}
                                     target="_blank" 
                                     rel="noopener noreferrer"
                                     className="inline-flex items-center justify-center py-2 px-4 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-md shadow-sm transition-colors duration-200"
@@ -294,6 +362,10 @@ export default function Home() {
                                     元のツイートを見る
                                   </a>
                                 )}
+                                {/* 詳細ページへのリンクを追加 (1位) */}
+                                <Link href={`/video/${tweets[0].id}`} className="inline-flex items-center justify-center py-2 px-4 bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white text-sm font-medium rounded-md shadow-sm transition-colors duration-200">
+                                  詳細を見る &rarr;
+                                </Link>
                               </div>
                             </div>
                           </div>
@@ -303,7 +375,7 @@ export default function Home() {
                     
                     {/* 2位と3位は横並びで通常より少し大きく */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {tweets.slice(1, 3).map((tweet, index) => (
+                      {tweets.slice(1, 3).map((tweet: Tweet, index: number) => (
                         <div key={tweet.id} className={`bg-gradient-to-r ${
                           index === 0 
                             ? 'from-gray-100 to-gray-50 dark:from-gray-700/50 dark:to-gray-800' 
@@ -315,10 +387,11 @@ export default function Home() {
                             <FaMedal className={`mr-2 ${
                               index === 0 ? 'text-gray-400' : 'text-amber-600'
                             }`} /> 
-                            {index === 0 ? '第2位' : '第3位'}
+                            {sort !== 'latest' ? (index === 0 ? '第2位' : '第3位') : (index === 0 ? 2 : 3)} {/* latest以外は「第〇位」、latestは数字 */}
                           </h3>
                           
                           <div className="flex flex-col gap-4">
+                            {/* 動画表示部分 */}
                             <div className="relative aspect-video rounded-lg overflow-hidden shadow-md">
                               <video
                                 src={tweet.videoUrl}
@@ -327,21 +400,20 @@ export default function Home() {
                                 poster={tweet.thumbnailUrl || undefined}
                                 preload="metadata"
                               />
-                              
-                              {/* Twitter遷移ボタンをビデオの右上に表示 */}
+                              {/* Twitter遷移ボタン */}
                               {tweet.originalUrl && (
                                 <a 
                                   href={tweet.originalUrl} 
                                   target="_blank" 
                                   rel="noopener noreferrer"
-                                  className="absolute top-3 right-3 bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-full shadow-md transition-colors duration-200 flex items-center justify-center"
+                                  className="absolute top-3 right-3 bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-full shadow-md transition-colors duration-200 flex items-center justify-center z-10"
                                   title="元のツイートを見る"
                                 >
                                   <FaTwitter size={16} />
                                 </a>
                               )}
                             </div>
-                            
+                            {/* 情報表示部分 */}
                             <div>
                               <div className="flex items-center mb-3">
                                 {tweet.authorProfileImageUrl ? (
@@ -383,15 +455,19 @@ export default function Home() {
                               {/* 元ツイートへのリンクボタン */}
                               {getOriginalUrl(tweet) && (
                                 <a 
-                                  href={getOriginalUrl(tweet)} 
+                                  href={getOriginalUrl(tweet) || undefined}
                                   target="_blank" 
                                   rel="noopener noreferrer"
-                                  className="inline-flex items-center justify-center py-1.5 px-3 bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium rounded-md shadow-sm transition-colors duration-200"
+                                  className="inline-flex items-center justify-center py-1.5 px-3 bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium rounded-md shadow-sm transition-colors duration-200 mr-2" // mr-2追加
                                 >
                                   <FaTwitter className="mr-1" />
                                   元ツイートを見る
                                 </a>
                               )}
+                              {/* 詳細ページへのリンクを追加 (2位, 3位) */}
+                              <Link href={`/video/${tweet.id}`} className="inline-flex items-center justify-center py-1.5 px-3 bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white text-xs font-medium rounded-md shadow-sm transition-colors duration-200">
+                                詳細を見る &rarr;
+                              </Link>
                             </div>
                           </div>
                         </div>
@@ -403,13 +479,16 @@ export default function Home() {
                 {/* 4位以降 */}
                 {tweets.slice(3).length > 0 && (
                   <>
-                    <div className="md:col-span-2 xl:col-span-3 mb-6">
-                      <h2 className="text-xl font-bold border-b pb-2 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
-                        ランキング 4位〜{tweets.length}位
-                      </h2>
-                    </div>
-                    {tweets.slice(3).map((tweet, index) => (
-                      <TweetCard key={tweet.id} tweet={tweet} rank={index + 4} />
+                    {/* ランキング 4位〜の見出し (latest以外で表示) */}
+                    {sort !== 'latest' && (
+                      <div className="md:col-span-2 xl:col-span-3 mb-6">
+                        <h2 className="text-xl font-bold border-b pb-2 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
+                          ランキング 4位〜{tweets.length}位
+                        </h2>
+                      </div>
+                    )}
+                    {tweets.slice(3).map((tweet: Tweet, index: number) => (
+                      <TweetCard key={tweet.id} tweet={tweet} rank={index + 4} sort={sort} />
                     ))}
                   </>
                 )}
@@ -432,7 +511,8 @@ export default function Home() {
             </>
           )}
         </div>
-      </div>
+      {/* flex div の閉じタグ */}
+      </div> 
     </div>
   );
 }

@@ -1,20 +1,3 @@
-/**
- * 機能概要：
- * プロジェクトの依存関係とスクリプトを管理する設定ファイル
- * 
- * 主な機能：
- * 1. プロジェクトメタデータの管理
- * 2. 依存パッケージの定義
- * 3. 実行スクリプトの設定
- * 4. 開発環境の設定
- * 
- * 用途：
- * - パッケージ管理
- * - ビルドプロセスの定義
- * - 開発環境のセットアップ
- * - デプロイメント設定
- */
-
 {
   "name": "xranking",
   "version": "0.1.0",
@@ -32,6 +15,7 @@
     "@tanstack/react-query-devtools": "^5.66.11",
     "axios": "^1.8.3",
     "date-fns": "^4.1.0",
+    "file-saver": "^2.0.5",
     "framer-motion": "^12.5.0",
     "mssql": "^11.0.1",
     "nanoid": "^5.1.2",
@@ -42,12 +26,14 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-icons": "^5.5.0",
-    "react-twitter-embed": "^4.0.4",
+    "react-intersection-observer": "^9.16.0",
     "twitter-api-sdk": "^1.2.1",
-    "winston": "^3.17.0"
+    "winston": "^3.17.0",
+    "youtube-dl-exec": "^3.0.20"
   },
   "devDependencies": {
     "@playwright/test": "^1.51.0",
+    "@types/file-saver": "^2.0.7",
     "@types/mssql": "^9.1.7",
     "@types/nodemailer": "^6.4.17",
     "@types/react": "19.0.10",

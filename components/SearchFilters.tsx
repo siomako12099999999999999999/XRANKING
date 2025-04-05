@@ -17,199 +17,91 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, ChangeEvent } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Period, SortType } from '@/app/types';
 
 interface SearchFiltersProps {
-  initialPeriod: Period;
-  initialSort: SortType;
   onFilterChange: (period: Period, sort: SortType) => void;
 }
 
 export default function SearchFilters({ 
-  initialPeriod, 
-  initialSort, 
   onFilterChange 
 }: SearchFiltersProps) {
-  const [sort, setSort] = useState(initialSort);
-  const [period, setPeriod] = useState(initialPeriod);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
+  // searchParams が null の場合のフォールバック
+  const getQueryParam = (key: string, defaultValue: string): string => {
+    return searchParams?.get(key) || defaultValue;
+  };
+  
+  // URLクエリパラメータから初期値を取得、なければデフォルト値
+  const initialSort = getQueryParam('sort', 'likes') as SortType;
+  const initialPeriod = getQueryParam('period', 'day') as Period;
+
+  const [sort, setSort] = useState<SortType>(initialSort);
+  const [period, setPeriod] = useState<Period>(initialPeriod);
+
+  // sort または period が変更されたらURLを更新し、親コンポーネントに通知
   useEffect(() => {
-    // URL更新
-    const searchParams = new URLSearchParams();
-    searchParams.set('sort', sort);
-    searchParams.set('period', period);
-    router.push(`/?${searchParams.toString()}`);
-  }, [sort, period, router]);
+    // searchParams が null の場合は更新しない
+    if (!searchParams) return; 
 
-  const handleSortChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value as SortType;
-    setSort(value);
-    onFilterChange(period, value);
+    const currentParams = new URLSearchParams(searchParams.toString());
+    currentParams.set('sort', sort);
+    currentParams.set('period', period);
+    // router.push はページ遷移を引き起こすため、replace を使用して履歴スタックに追加しないようにする
+    router.replace(`/?${currentParams.toString()}`, { scroll: false }); 
+    onFilterChange(period, sort);
+  }, [sort, period, router, searchParams, onFilterChange]);
+
+  const handleSortChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    setSort(e.target.value as SortType);
   };
 
-  const handlePeriodChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value as Period;
-    setPeriod(value);
-    onFilterChange(value, sort);
+  const handlePeriodChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    setPeriod(e.target.value as Period);
   };
 
   return (
-    <div className="space-y-6">
-      {/* ソート順 */}
-      <div>
-        <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
+    <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-4 sm:space-y-0 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg shadow">
+      {/* ソート順 ドロップダウン */}
+      <div className="flex-1">
+        <label htmlFor="sort-select" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           ソート順
-        </h3>
-        <div className="space-y-2">
-          <div className="flex items-center">
-            <input
-              id="sort-likes"
-              name="sort"
-              type="radio"
-              value="likes"
-              checked={sort === 'likes'}
-              onChange={handleSortChange}
-              className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-            />
-            <label 
-              htmlFor="sort-likes"
-              className="ml-3 text-sm text-gray-700 dark:text-gray-300"
-            >
-              いいね数
-            </label>
-          </div>
-          <div className="flex items-center">
-            <input
-              id="sort-latest"
-              name="sort"
-              type="radio"
-              value="latest"
-              checked={sort === 'latest'}
-              onChange={handleSortChange}
-              className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-            />
-            <label 
-              htmlFor="sort-latest"
-              className="ml-3 text-sm text-gray-700 dark:text-gray-300"
-            >
-              最新順
-            </label>
-          </div>
-          <div className="flex items-center">
-            <input
-              id="sort-trending"
-              name="sort"
-              type="radio"
-              value="trending"
-              checked={sort === 'trending'}
-              onChange={handleSortChange}
-              className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-            />
-            <label 
-              htmlFor="sort-trending"
-              className="ml-3 text-sm text-gray-700 dark:text-gray-300"
-            >
-              トレンド
-            </label>
-          </div>
-          <div className="flex items-center">
-            <input
-              id="sort-combined"
-              name="sort"
-              type="radio"
-              value="combined"
-              checked={sort === 'combined'}
-              onChange={handleSortChange}
-              className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-            />
-            <label 
-              htmlFor="sort-combined"
-              className="ml-3 text-sm text-gray-700 dark:text-gray-300"
-            >
-              総合ランキング
-            </label>
-          </div>
-        </div>
+        </label>
+        <select
+          id="sort-select"
+          name="sort"
+          value={sort}
+          onChange={handleSortChange}
+          className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+        >
+          <option value="likes">いいね数</option>
+          <option value="latest">最新順</option>
+          <option value="trending">トレンド</option>
+          <option value="combined">総合ランキング</option>
+        </select>
       </div>
       
-      {/* 期間 */}
-      <div>
-        <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
+      {/* 期間 ドロップダウン */}
+      <div className="flex-1">
+        <label htmlFor="period-select" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           期間
-        </h3>
-        <div className="space-y-2">
-          <div className="flex items-center">
-            <input
-              id="period-day"
-              name="period"
-              type="radio"
-              value="day"
-              checked={period === 'day'}
-              onChange={handlePeriodChange}
-              className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-            />
-            <label 
-              htmlFor="period-day"
-              className="ml-3 text-sm text-gray-700 dark:text-gray-300"
-            >
-              24時間
-            </label>
-          </div>
-          <div className="flex items-center">
-            <input
-              id="period-week"
-              name="period"
-              type="radio"
-              value="week"
-              checked={period === 'week'}
-              onChange={handlePeriodChange}
-              className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-            />
-            <label 
-              htmlFor="period-week"
-              className="ml-3 text-sm text-gray-700 dark:text-gray-300"
-            >
-              過去7日間
-            </label>
-          </div>
-          <div className="flex items-center">
-            <input
-              id="period-month"
-              name="period"
-              type="radio"
-              value="month"
-              checked={period === 'month'}
-              onChange={handlePeriodChange}
-              className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-            />
-            <label 
-              htmlFor="period-month"
-              className="ml-3 text-sm text-gray-700 dark:text-gray-300"
-            >
-              過去30日間
-            </label>
-          </div>
-          <div className="flex items-center">
-            <input
-              id="period-all"
-              name="period"
-              type="radio"
-              value="all"
-              checked={period === 'all'}
-              onChange={handlePeriodChange}
-              className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-            />
-            <label 
-              htmlFor="period-all"
-              className="ml-3 text-sm text-gray-700 dark:text-gray-300"
-            >
-              すべて
-            </label>
-          </div>
-        </div>
+        </label>
+        <select
+          id="period-select"
+          name="period"
+          value={period}
+          onChange={handlePeriodChange}
+          className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+        >
+          <option value="day">24時間</option>
+          <option value="week">過去7日間</option>
+          <option value="month">過去30日間</option>
+          <option value="all">すべて</option>
+        </select>
       </div>
     </div>
   );

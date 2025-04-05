@@ -48,16 +48,8 @@
   }
 }
 
-/* Twitter埋め込みのカスタマイズ */
-.twitter-tweet {
-  margin: 0 !important;
-  width: 100% !important;
-  min-height: 300px !important;
-  display: flex !important;
-  justify-content: center !important;
-  background-color: #f8f9fa !important;
-  border-radius: 0.5rem !important;
-}
+/* Twitter埋め込みのカスタマイズ (react-twitter-embed削除により不要な可能性) */
+/* .twitter-tweet { ... } */
 
 /* ローディング時のスケルトン表示 */
 .tweet-skeleton {
@@ -192,49 +184,31 @@
   touch-action: manipulation !important;
   cursor: pointer !important;
   transform: translateZ(0); transform: translateZ(0);
-  will-change: transform;  will-change: transform;
-  -webkit-tap-highlight-color: transparent !important;olor: transparent !important;
+  will-change: transform;
+  -webkit-tap-highlight-color: transparent !important;
 }
 
-/* ボタンのタップ領域を拡大 */* ボタンのタップ領域を拡大 */
-.mute-button::before {.mute-button::before {
+/* ボタンのタップ領域を拡大 */
+.mute-button::before {
   content: '';
-  position: absolute;;
+  position: absolute; /* 重複セミコロン削除 */
   top: -10px;
-  right: -10px;ight: -10px;
-  bottom: -10px;bottom: -10px;
+  right: -10px; /* タイプミス修正 */
+  bottom: -10px; /* タイプミス修正 */
   left: -10px;
   z-index: -1;
 }
 
-/* アクションバーとボタンの優先度を上げる */上げる */
+/* アクションバーとボタンの優先度を上げる */
 .z-60 {
   z-index: 60 !important;
 }
 
+/* @layer utilities ブロック内の冗長なアニメーション定義を削除 */
+/* @layer utilities { ... } */
+
+/* スクロールバー非表示ユーティリティはTailwind標準または必要に応じて定義 */
 @layer utilities {
-  .animate-fade-in {animate-fade-in {
-    animation: fadeIn 0.2s ease-out forwards;   animation: fadeIn 0.2s ease-out forwards;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-}  }    display: none;  /* Chrome, Safari, Opera 用 */  .scrollbar-hide::-webkit-scrollbar {  }    scrollbar-width: none;  /* Firefox 用 */    -ms-overflow-style: none;  /* Internet Explorer と Edge 用 */  .scrollbar-hide {    }    animation: pulse 1.5s ease-in-out infinite;  .animate-pulse {    }  }
-  
-  .animate-pulse {
-    animation: pulse 1.5s ease-in-out infinite;
-  }
-  
   .scrollbar-hide {
     -ms-overflow-style: none;  /* Internet Explorer と Edge 用 */
     scrollbar-width: none;  /* Firefox 用 */

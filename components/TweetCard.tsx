@@ -15,20 +15,31 @@
  * - 外部リンクの提供
  */
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react'; // useEffectをインポート
+import Link from 'next/link'; // Linkをインポート
+import { useInView } from 'react-intersection-observer'; // useInViewをインポート
 import { FaHeart, FaRetweet, FaEye, FaTwitter, FaExternalLinkAlt, FaTrophy, FaMedal } from 'react-icons/fa';
-import { Tweet } from '@/app/types';
+import { Tweet, SortType } from '@/app/types'; // SortType をインポート
 import { formatNumber, formatDate } from '@/lib/utils';
 
 type TweetCardProps = {
   tweet: Tweet;
   rank: number;
+  sort: SortType; // sort プロパティを追加
 };
 
-const TweetCard: React.FC<TweetCardProps> = ({ tweet, rank }) => {
+const TweetCard: React.FC<TweetCardProps> = ({ tweet, rank, sort }) => { // sort を受け取る
   const [isHovered, setIsHovered] = useState(false);
-  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
+  // isVideoLoaded は遅延読み込みには不要なため削除してもよい
+  // const [isVideoLoaded, setIsVideoLoaded] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Intersection Observerの設定
+  const { ref: cardRef, inView: isCardVisible } = useInView({
+    triggerOnce: true, // 一度表示されたら監視を停止
+    threshold: 0.1, // 10%表示されたらトリガー
+    rootMargin: '200px 0px', // ビューポートの上下200pxマージンで早めに読み込み開始
+  });
 
   // サムネイルのフォールバック処理
   const thumbnailUrl = tweet.thumbnailUrl || undefined;
@@ -47,9 +58,7 @@ const TweetCard: React.FC<TweetCardProps> = ({ tweet, rank }) => {
 
   const originalUrl = getOriginalUrl();
 
-  const handleVideoLoad = () => {
-    setIsVideoLoaded(true);
-  };
+  // handleVideoLoad は isVideoLoaded を使わないため削除
   
   const handleMouseEnter = () => {
     setIsHovered(true);
@@ -102,7 +111,8 @@ const TweetCard: React.FC<TweetCardProps> = ({ tweet, rank }) => {
   };
 
   return (
-    <div 
+    <div
+      ref={cardRef} // Intersection Observerのrefをセット
       className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden transition-all hover:shadow-md relative"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
@@ -115,18 +125,18 @@ const TweetCard: React.FC<TweetCardProps> = ({ tweet, rank }) => {
       <div className="relative aspect-video overflow-hidden bg-gray-100 dark:bg-gray-700">
         {/* サムネイル/動画要素 */}
         <div className="w-full h-full relative">
-          {tweet.videoUrl ? (
+          {/* isCardVisibleがtrueの場合のみvideo要素をレンダリング */}
+          {isCardVisible && tweet.videoUrl ? (
             <>
               <video
                 ref={videoRef}
                 src={tweet.videoUrl}
                 className="w-full h-full object-cover"
-                preload="metadata"
+                preload="metadata" // metadataは読み込むが、動画データ自体は遅延
                 poster={thumbnailUrl}
-                onLoadedData={handleVideoLoad}
+                // onLoadedData={handleVideoLoad} // isVideoLoadedを使わない場合は不要
                 controls
               />
-              
               {/* 元ツイートへのリンクボタン */}
               {originalUrl && (
                 <a 
@@ -142,12 +152,17 @@ const TweetCard: React.FC<TweetCardProps> = ({ tweet, rank }) => {
               )}
             </>
           ) : (
+            // カードが見える前、または動画URLがない場合はサムネイル（またはプレースホルダー）を表示
             <div className="absolute inset-0 flex items-center justify-center bg-gray-200 dark:bg-gray-700">
-              <span className="text-gray-400 dark:text-gray-500">No Video</span>
+              {thumbnailUrl ? (
+                <img src={thumbnailUrl} alt="Video thumbnail" className="w-full h-full object-cover opacity-50" />
+              ) : (
+                <span className="text-gray-400 dark:text-gray-500">No Video</span>
+              )}
+              {/* ローディングインジケーターなどを追加しても良い */}
             </div>
           )}
         </div>
-        
         {/* エンゲージメント情報 */}
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3 pointer-events-none">
           <div className="flex items-center space-x-4 text-white text-sm">
@@ -170,8 +185,8 @@ const TweetCard: React.FC<TweetCardProps> = ({ tweet, rank }) => {
       </div>
       
       <div className="p-4">
-        {/* 順位情報 - 上位3位に特別なスタイル */}
-        {rank <= 3 && (
+        {/* 順位情報 - 上位3位に特別なスタイル (sortがlatestでない場合のみ表示) */}
+        {rank <= 3 && sort !== 'latest' && (
           <div className={`mb-2 flex items-center ${rankStyle.textColor} font-bold`}>
             {rankStyle.icon}
             <span>
@@ -218,6 +233,16 @@ const TweetCard: React.FC<TweetCardProps> = ({ tweet, rank }) => {
               元ツイート
             </a>
           )}
+        </div>
+
+        {/* 詳細ページへのリンクを追加 */}
+        <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+          <Link 
+            href={`/video/${tweet.id}`} 
+            className="text-sm text-blue-600 hover:underline dark:text-blue-400 font-medium"
+          >
+            詳細を見る &rarr;
+          </Link>
         </div>
       </div>
     </div>
