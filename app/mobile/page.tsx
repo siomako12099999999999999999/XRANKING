@@ -9,6 +9,7 @@
  * 4. 期間とソートのフィルタリング
  * 5. 音声のミュート/アンミュート
  * 6. フルスクリーン表示
+ * 7. 動画ダウンロード機能
  * 
  * 用途：
  * - モバイルに最適化された動画視聴体験
@@ -26,7 +27,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useInfiniteQuery, InfiniteQueryObserverResult } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query'; // InfiniteQueryObserverResult は不要な場合削除
 import Link from 'next/link';
 import { Period } from '@/app/types';
 // 必要に応じてTweetタイプを拡張
@@ -46,44 +47,18 @@ type ExtendedTweet = {
   backupVideoUrl?: string; // バックアップURLを追加
 };
 import { useInView } from 'react-intersection-observer';
-import { FaVolumeUp, FaVolumeMute, FaRetweet, FaHeart } from 'react-icons/fa';
+// アイコンのインポートに FaDownload を追加
+import { FaVolumeUp, FaVolumeMute, FaRetweet, FaHeart, FaDownload } from 'react-icons/fa'; 
 import { BsChevronUp, BsChevronDown, BsFullscreen } from 'react-icons/bs';
 import { RiArrowLeftLine } from 'react-icons/ri';
+// import { saveAs } from 'file-saver'; // file-saver を使用しないためコメントアウトまたは削除
 
-// status型の定義を修正 - React Query v4の正確な型に合わせる
-// 'loading'と'idle'を追加
+// status型の定義は残しても良いが、使用箇所はフラグに置き換える
 export type QueryStatus = 'idle' | 'loading' | 'error' | 'success' | 'pending';
 
 export type SortType = 'total' | 'likes' | 'trending' | 'latest'; // 'total'を追加
 
-/**
- * ミュートボタンの固定コンポーネント。
- * ミュート状態をトグルするためのUIを提供します。
- */
-function FixedMuteButton(props: { isMuted: boolean; handleMuteToggle: () => void }) {
-  const { isMuted, handleMuteToggle } = props;
-  return (
-    <div
-      className="fixed bottom-6 left-4 z-50"
-      onClick={(e: React.MouseEvent<HTMLDivElement>) => {
-        e.stopPropagation();
-        e.preventDefault();
-        handleMuteToggle();
-      }}
-    >
-      <div className="w-12 h-12 rounded-full bg-black bg-opacity-70 flex items-center justify-center shadow-lg">
-        {isMuted ? (
-          <FaVolumeMute size={22} color="white" />
-        ) : (
-          <FaVolumeUp size={22} color="white" />
-        )}
-      </div>
-      <span className="text-white text-xs mt-1 bg-black bg-opacity-40 px-2 py-1 rounded-full text-center">
-        {isMuted ? "ミュート中" : "音声オン"}
-      </span>
-    </div>
-  );
-}
+// FixedMuteButton コンポーネントを削除
 
 /**
  * 動画コンポーネント。
@@ -239,13 +214,30 @@ export default function MobilePage() {
   const [period, setPeriod] = useState<Period>('day');
   const [sort, setSort] = useState<SortType>('total');
   const [activeIndex, setActiveIndex] = useState(0);
-  const [isPeriodOpen, setIsPeriodOpen] = useState(false);
+  // const [isPeriodOpen, setIsPeriodOpen] = useState(false); // ボタン形式に変更するため不要
+  // const [isSortOpen, setIsSortOpen] = useState(false); // ボタン形式に変更するため不要
   const [isSortOpen, setIsSortOpen] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [isPlaying, setIsPlaying] = useState<{ [key: string]: boolean }>({});
   const [autoSwitchAttempts, setAutoSwitchAttempts] = useState<Period[]>([]);
   const [isAutoSwitching, setIsAutoSwitching] = useState(false);
-  
+  const [isDownloading, setIsDownloading] = useState<string | null>(null); // ダウンロード機能有効化
+
+  // 期間とソート順のオプション (デスクトップ版からコピー)
+  const periodOptions: { value: Period; label: string }[] = [
+    { value: 'day', label: '24H' }, // モバイル用に短縮
+    { value: 'week', label: '週間' },
+    { value: 'month', label: '月間' },
+    { value: 'all', label: '全期間' },
+  ];
+
+  const sortOptions: { value: SortType; label: string }[] = [
+    { value: 'total', label: '総合' }, // モバイル用に短縮
+    { value: 'likes', label: '人気' }, // モバイル用に短縮
+    { value: 'trending', label: 'トレンド' },
+    { value: 'latest', label: '新着' },
+  ];
+
   // 手動で一時停止された動画を追跡するためのRef
   const manuallyPausedVideos = useRef<Set<string>>(new Set());
 
@@ -262,12 +254,15 @@ export default function MobilePage() {
   // データ取得メソッド
   const {
     data,
-    status,
+    status, // status は残しても良いが、判定にはフラグを使用
     error,
     refetch,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
+    isLoading, // 追加
+    isSuccess, // 追加
+    isError,   // 追加
   } = useInfiniteQuery({
     queryKey: ['mobile-tweets', period, sort],
     queryFn: async ({ pageParam = 1 }) => {
@@ -301,10 +296,10 @@ export default function MobilePage() {
   // 空の結果が返された場合、自動的に期間を切り替える
   useEffect(() => {
     // ロード中または初期ロード時はスキップ
-    if (status === 'loading' || status === 'idle') return;
+    if (isLoading) return; 
 
     // 結果が空かつ自動切り替えが有効でない場合
-    if (status === 'success' && tweets.length === 0 && !isAutoSwitching) {
+    if (isSuccess && tweets.length === 0 && !isAutoSwitching) {
       // 自動切り替えを開始
       setIsAutoSwitching(true);
       
@@ -332,7 +327,7 @@ export default function MobilePage() {
       setIsAutoSwitching(false);
       setAutoSwitchAttempts([]);
     }
-  }, [status, tweets.length, period, autoSwitchAttempts, isAutoSwitching]);
+  }, [isLoading, isSuccess, tweets.length, period, autoSwitchAttempts, isAutoSwitching]);
 
   // 無限スクロールの処理 - hasNextPageなどが初期化された後に実行
   useEffect(() => {
@@ -718,13 +713,15 @@ export default function MobilePage() {
     className,
     children,
     style,
-    title,  // titleプロパティを追加
+    title,
+    disabled, // disabled プロパティを追加
   }: {
     onClick: (e: React.MouseEvent) => void;
     className?: string;
     children: React.ReactNode;
     style?: React.CSSProperties;
-    title?: string;  // オプショナルプロパティとして定義
+    title?: string;
+    disabled?: boolean; // disabled プロパティを型定義に追加 (オプショナル)
   }) => {
     return (
       <button
@@ -743,6 +740,7 @@ export default function MobilePage() {
         }}
         className={`${className} control-button`}
         style={{ ...style, zIndex: 200 }}
+        disabled={disabled} // disabled 属性を追加
       >
         {children}
       </button>
@@ -803,82 +801,117 @@ export default function MobilePage() {
     }
   };
 
+  // ダウンロード機能を有効化
+  const handleDownload = async (videoUrl: string, tweetId: string, authorUsername?: string) => {
+    if (!videoUrl) {
+      console.error('ダウンロードする動画のURLがありません。');
+      alert('動画URLが見つかりません。');
+      return;
+    }
+    if (isDownloading === tweetId) return; // ダウンロード中は無視
+
+    setIsDownloading(tweetId);
+    console.log(`Downloading video: ${videoUrl}`);
+
+    try {
+      // CORSの問題を回避するためにAPIルート経由でフェッチ
+      const response = await fetch(`/api/download-video?url=${encodeURIComponent(videoUrl)}`);
+
+      if (!response.ok) {
+        // APIルートからのエラーメッセージを取得
+        const errorText = await response.text();
+        console.error(`ダウンロードサーバーエラー: ${response.status} ${response.statusText}`, errorText);
+        throw new Error(`ダウンロードサーバーエラー: ${response.status} ${response.statusText}\n${errorText}`);
+      }
+
+      const blob = await response.blob();
+
+      // Content-Disposition ヘッダーからファイル名を取得する試み
+      let filename = `${authorUsername || 'twitter'}_${tweetId}.mp4`; // デフォルトファイル名
+      const disposition = response.headers.get('Content-Disposition');
+      if (disposition && disposition.indexOf('attachment') !== -1) {
+          const filenameRegex = /filename\*?=['"]?(?:UTF-\d['"]*)?([^;\r\n"']*)['"]?;?/;
+          const matches = filenameRegex.exec(disposition);
+          if (matches != null && matches[1]) {
+              try {
+                filename = decodeURIComponent(matches[1].replace(/['"]/g, ''));
+              } catch (e) {
+                console.warn("Could not decode filename from Content-Disposition, using default.", e);
+                // デコード失敗時はデフォルト名を使用
+              }
+          }
+      }
+
+      // ブラウザAPIを使用してダウンロードをトリガー
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = filename; // ダウンロード時のファイル名を設定
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url); // オブジェクトURLを解放
+      document.body.removeChild(a); // 要素を削除
+
+    } catch (error) {
+      console.error('動画のダウンロードに失敗しました:', error);
+      alert(`動画のダウンロードに失敗しました。\n${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      setIsDownloading(null);
+    }
+  };
+
   /**
    * ヘッダーコンポーネント。
    * 期間やソート順を切り替えるUIを提供します。
    */
   const TikTokHeader = () => {
-    const handlePeriodClick = (e: React.MouseEvent) => {
-      e.stopPropagation();
-      e.preventDefault();
-      const periods: Period[] = ['day', 'week', 'month', 'all'];
-      const currentIndex = periods.indexOf(period);
-      setPeriod(periods[(currentIndex + 1) % periods.length]);
-    };
-
-    const handleSortClick = (e: React.MouseEvent) => {
-      e.stopPropagation();
-      e.preventDefault();
-      const sorts: SortType[] = ['total', 'likes', 'trending', 'latest'];
-      const currentIndex = sorts.indexOf(sort);
-      setSort(sorts[(currentIndex + 1) % sorts.length]);
-    };
+    // 期間・ソート変更ロジックは削除
+    // const handlePeriodClick = ...
+    // const handleSortClick = ...
 
     return (
       <div
-        className="fixed top-0 left-0 right-0 px-4 py-1 bg-black bg-opacity-50 tiktok-header"
         style={{
           pointerEvents: 'auto',
           touchAction: 'auto',
-          zIndex: 20000,
-          top: '70px', // ヘッダーの垂直位置を調整
-          left: '0%',  // 左側の余白を設定
-          right: '0%', // 右側の余白を設定
-          width: '0%', // ヘッダーの幅を設定
+          zIndex: 30, // zIndexは他の要素との兼ね合いで調整
+          top: '0', // 画面最上部に固定
+          left: '0',
+          right: '0',
+          width: '100%', // 幅を100%に設定
+          paddingTop: 'env(safe-area-inset-top)', // iOSのノッチ対応
         }}
+        className="fixed top-0 left-0 right-0 px-4 py-2 bg-black bg-opacity-60 backdrop-blur-sm flex justify-center" // 中央寄せに変更
       >
-        <div className="flex space-x-2">
-          <div
-            className="px-3 py-1 rounded-full bg-black bg-opacity-40 flex items-center cursor-pointer pointer-fix"
-            onClick={handlePeriodClick}
-            style={{ pointerEvents: 'auto' }}
-          >
-            <span className="text-white text-xs font-medium mr-1">
-              {period === 'day' ? '24H' : 
-               period === 'week' ? '週間' : 
-               period === 'month' ? '月間' : '全て'}
-            </span>
-            <BsChevronDown size={12} color="white" />
-          </div>
-          
-          <div
-            className="px-3 py-1 rounded-full bg-black bg-opacity-40 flex items-center cursor-pointer pointer-fix"
-            onClick={handleSortClick}
-            style={{ pointerEvents: 'auto' }}
-          >
-            <span className="text-white text-xs font-medium mr-1">
-              {sort === 'total' ? '総合' : 
-               sort === 'likes' ? '人気' : 
-               sort === 'trending' ? 'トレンド' : '新着'}
-            </span>
-            <BsChevronDown size={12} color="white" />
-          </div>
-        </div>
+        {/* ヘッダーにはタイトルや戻るボタンなどを配置可能 */}
+        <span className="text-white font-semibold">XRANKING Mobile</span> 
+        {/* 期間・ソートボタンはヘッダー外に移動 */}
       </div>
     );
   };
 
   /**
    * アクションバーコンポーネント。
-   * 動画のいいね、リツイート、全画面表示などの操作を提供します。
+   * 動画のいいね、リツイート、全画面表示、ミュート、ダウンロードなどの操作を提供します。
    */
   const TikTokActionBar = ({
     tweet,
     index,
+    isMuted, // 追加
+    handleMuteToggle, // 追加
+    handleDownload, // 追加
+    isDownloading, // 追加
   }: {
     tweet: ExtendedTweet;
     index: number;
+    isMuted: boolean; // 追加
+    handleMuteToggle: () => void; // 追加
+    handleDownload: (videoUrl: string, tweetId: string, authorUsername?: string) => void; // 追加
+    isDownloading: string | null; // 追加
   }) => {
+    const isCurrentlyDownloading = isDownloading === tweet.id; // ダウンロード機能有効化
+
     return (
       <div
         className="absolute right-3 flex flex-col space-y-6 items-center"
@@ -926,6 +959,45 @@ export default function MobilePage() {
           </button>
           <span className="text-white text-xs mt-1">全画面</span>
         </div>
+        {/* ミュートボタンをここに追加 */}
+        <div className="flex flex-col items-center">
+           <ControlButton
+            onClick={(e) => {
+              handleMuteToggle();
+            }}
+            className="w-10 h-10 rounded-full bg-black bg-opacity-40 flex items-center justify-center"
+            title={isMuted ? "ミュート解除" : "ミュート"}
+          >
+            {isMuted ? (
+              <FaVolumeMute size={20} color="white" />
+            ) : (
+              <FaVolumeUp size={20} color="white" />
+            )}
+          </ControlButton>
+          <span className="text-white text-xs mt-1">
+            {isMuted ? "ミュート中" : "音声オン"}
+          </span>
+        </div>
+        {/* ダウンロードボタン (コメントアウト解除し、ミュートの下に移動) */}
+        <div className="flex flex-col items-center">
+          <ControlButton
+            onClick={(e) => {
+              handleDownload(tweet.videoUrl, tweet.id, tweet.authorUsername); // コメントアウト解除
+            }}
+            className={`w-10 h-10 rounded-full bg-black bg-opacity-40 flex items-center justify-center ${isCurrentlyDownloading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            title={isCurrentlyDownloading ? "ダウンロード中..." : "ダウンロード"}
+            disabled={isCurrentlyDownloading} // ボタン自体を無効化する場合は追加
+          >
+            {isCurrentlyDownloading ? (
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            ) : (
+              <FaDownload size={20} color="white" /> // アイコンを FaDownload に修正
+            )}
+          </ControlButton>
+          <span className="text-white text-xs mt-1">
+            {isCurrentlyDownloading ? "処理中" : "保存"}
+          </span>
+        </div>
         {tweet.originalUrl && (
           <div className="flex flex-col items-center">
             <a
@@ -948,13 +1020,16 @@ export default function MobilePage() {
   };
 
   /**
-   * 動画情報コンポーネント。
-   * 動画のタイトルや投稿者情報、ハッシュタグを表示します。
-   */
-  const TikTokVideoInfo = ({ tweet }: { tweet: ExtendedTweet }) => (
-    <div className="absolute bottom-4 left-3 right-16 z-30">
-      <div className="flex items-center mb-2">
-        <div className="mr-2">
+ * 動画情報コンポーネント。
+ * 動画のタイトルや投稿者情報、ハッシュタグを表示します。
+ */
+const TikTokVideoInfo = ({ tweet }: { tweet: ExtendedTweet }) => {
+  const hasOriginalUrl = !!tweet.originalUrl; // originalUrlの有無をbooleanで判定
+
+  return (
+  <div className="absolute bottom-16 left-3 right-16 z-30"> {/* bottom-4 を bottom-16 に変更 */}
+    <div className="flex items-center mb-2">
+      <div className="mr-2">
           {tweet.authorProfileImageUrl && (
             <img 
               src={tweet.authorProfileImageUrl} 
@@ -985,11 +1060,35 @@ export default function MobilePage() {
           })}
         </p>
       )}
+      {/* 詳細ページまたは元投稿へのリンク */}
+      <div className="mt-2">
+        {hasOriginalUrl ? ( // boolean値で判定
+          <a
+            href={tweet.originalUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-400 hover:text-blue-300 text-xs font-medium inline-flex items-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            元投稿を見る &rarr;
+          </a>
+        ) : (
+          <Link
+            href={`/video/${tweet.id}`}
+            className="text-blue-400 hover:text-blue-300 text-xs font-medium inline-flex items-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            詳細を見る &rarr;
+          </Link>
+        )}
+      </div>
     </div>
   );
+};
 
   // 空の結果を取得した場合のエラー状態処理を改善
-  if (status === 'error') {
+  // status === 'error' を isError フラグで置き換え
+  if (isError) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-black p-4">
         <div className="bg-gray-800 p-5 rounded-lg text-white text-center">
@@ -1035,7 +1134,8 @@ export default function MobilePage() {
   }
 
   // データロード中の表示を改善 - status比較を修正
-  if (status === 'idle' || status === 'loading' || isAutoSwitching) {
+  // status === 'idle' || status === 'loading' を isLoading フラグで置き換え
+  if (isLoading || isAutoSwitching) {
     return (
       <div className="fixed inset-0 flex flex-col items-center justify-center bg-black">
         <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
@@ -1053,7 +1153,8 @@ export default function MobilePage() {
   }
 
   // ツイートがない場合の表示 - status比較を修正
-  if (status === 'success' && (!tweets || tweets.length === 0)) {
+  // status === 'success' を isSuccess フラグで置き換え
+  if (isSuccess && (!tweets || tweets.length === 0)) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-black p-4">
         <div className="bg-gray-800 p-5 rounded-lg text-white text-center">
@@ -1099,36 +1200,68 @@ export default function MobilePage() {
   return (
     <div className="bg-black h-screen overflow-hidden">
       {/* ヘッダーをスクロールコンテナの外に配置 */}
-      <div
-        id="tiktok-header-container"
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 30, // 高いz-indexを設定
-          pointerEvents: 'auto', // クリックを有効化
-          touchAction: 'auto', // タッチイベントを有効化
-        }}
+      {/* ヘッダーコンテナは不要になったため削除 */}
+      <TikTokHeader />
+
+      {/* 期間・ソート順変更ボタン (ヘッダーの下に追加) */}
+       <div 
+         className="fixed left-0 right-0 bg-black bg-opacity-70 backdrop-blur-sm p-2 z-20"
+         style={{ 
+           top: 'calc(env(safe-area-inset-top, 0px) + 56px)', // ヘッダーの高さ(48px) + 少し余白(8px) + セーフエリア
+           pointerEvents: 'auto' // クリックイベントを有効化
+         }}
       >
-        <TikTokHeader />
+        <div className="flex justify-center gap-2">
+          {/* 期間ボタン */}
+          <div className="flex flex-wrap gap-1">
+            {periodOptions.map((option) => (
+              <button
+                key={option.value}
+                onClick={() => setPeriod(option.value)}
+                className={`px-2 py-0.5 rounded-full text-xs font-medium transition-colors duration-150 ${
+                  period === option.value
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          {/* 区切り線 */}
+          <div className="border-l border-gray-600 h-5 self-center mx-1"></div>
+          {/* ソート順ボタン */}
+          <div className="flex flex-wrap gap-1">
+            {sortOptions.map((option) => (
+              <button
+                key={option.value}
+                onClick={() => setSort(option.value)}
+                className={`px-2 py-0.5 rounded-full text-xs font-medium transition-colors duration-150 ${
+                  sort === option.value
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
-      <FixedMuteButton
-        isMuted={isMuted}
-        handleMuteToggle={handleMuteToggle}
-      />
+      {/* FixedMuteButton の呼び出しを削除 */}
       
       <div
         ref={containerRef}
-        className="h-screen w-full overflow-y-scroll snap-y snap-mandatory pt-24"
+        className="h-screen w-full overflow-y-scroll snap-y snap-mandatory" // pt-24削除
         style={{
           scrollSnapType: 'y mandatory',
           WebkitOverflowScrolling: 'touch',
-          marginTop: '3.5rem', // ヘッダーの高さ分のマージンを追加
-          paddingTop: '4rem', // スクロール開始位置の調整
-        }}
-      >
+           // marginTop と paddingTop は固定ヘッダーにしたため不要になるか、調整が必要
+           // ヘッダーとフィルターボタンの高さを考慮してコンテンツの開始位置を調整
+           paddingTop: 'calc(env(safe-area-inset-top, 0px) + 56px + 40px)', // 新しいフィルターtop位置(56px) + フィルター高さ(40px) + セーフエリア
+         }}
+       >
         {tweets.map((tweet, index) => (
           <div
             key={tweet.id}
@@ -1156,7 +1289,15 @@ export default function MobilePage() {
                 <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-black/80 to-transparent pointer-events-none z-20"></div>
                 <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/50 to-transparent pointer-events-none z-20"></div>
                 
-                <TikTokActionBar tweet={tweet} index={index} />
+                {/* TikTokActionBar に isMuted, handleMuteToggle, handleDownload, isDownloading を渡す */}
+                <TikTokActionBar
+                  tweet={tweet}
+                  index={index}
+                  isMuted={isMuted}
+                  handleMuteToggle={handleMuteToggle}
+                  handleDownload={handleDownload} // コメントアウト解除
+                  isDownloading={isDownloading} // コメントアウト解除
+                />
                 <TikTokVideoInfo tweet={tweet} />
                 
                 <ControlButton

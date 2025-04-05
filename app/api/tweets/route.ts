@@ -59,7 +59,11 @@ export async function GET(request: Request) {
       orderBy = 'ORDER BY (likes / DATEDIFF(hour, timestamp, GETDATE() + 1)) DESC';
     } else if (sort === 'latest') {
       orderBy = 'ORDER BY timestamp DESC';
+    } else if (sort === 'total' || sort === 'combined') { // 'total' と 'combined' の両方に対応
+      // 総合スコア (likes + retweets + views) でソート
+      orderBy = 'ORDER BY (likes + retweets + views) DESC';
     } else {
+      // デフォルトはいいね数順
       orderBy = 'ORDER BY likes DESC';
     }
 
@@ -102,6 +106,7 @@ export async function GET(request: Request) {
       SELECT TOP ${limit}
         [id], [tweetId], [content], [videoUrl], [likes], [retweets], [views],
         [timestamp], [authorName], [authorUsername], [authorProfileImageUrl],
+        [originalUrl], -- originalUrl を追加
         [createdAt], [updatedAt]
       FROM (
         SELECT ROW_NUMBER() OVER(${orderBy}) as RowNum, *
